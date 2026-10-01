@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, useColorScheme } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, FlatList, useColorScheme, BackHandler } from 'react-native';
 import { StorageAccessFramework } from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, Stack } from 'expo-router';
@@ -15,6 +15,19 @@ export default function HomeScreen() {
   useEffect(() => {
     loadSavedDirectory();
   }, []);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (history.length > 0) {
+        goBack();
+        return true; // Prevent default back (which closes the app)
+      }
+      return false; // Allow default back (close app) if at root folder
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backHandler.remove();
+  }, [history, rootUri]); // Re-bind when history changes
 
   const loadSavedDirectory = async () => {
     try {

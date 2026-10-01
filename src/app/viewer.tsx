@@ -167,8 +167,31 @@ export default function ViewerScreen() {
               heading2: { color: isDark ? '#ffffff' : '#000000' },
               heading3: { color: isDark ? '#ffffff' : '#000000' },
               link: { color: '#007AFF' },
-              code_block: { backgroundColor: isDark ? '#222' : '#f5f5f5', color: isDark ? '#eee' : '#333' },
-              code_inline: { backgroundColor: isDark ? '#222' : '#f5f5f5', color: isDark ? '#eee' : '#333' }
+              fence: { 
+                backgroundColor: isDark ? '#1e1e1e' : '#f0f0f0', 
+                color: isDark ? '#d4d4d4' : '#333333',
+                fontFamily: 'monospace',
+                padding: 10,
+                borderRadius: 8,
+                borderWidth: 1,
+                borderColor: isDark ? '#333' : '#ddd',
+                marginVertical: 10
+              },
+              code_block: { 
+                backgroundColor: isDark ? '#1e1e1e' : '#f0f0f0', 
+                color: isDark ? '#d4d4d4' : '#333333',
+                fontFamily: 'monospace',
+                padding: 10,
+                borderRadius: 8,
+                marginVertical: 10
+              },
+              code_inline: { 
+                backgroundColor: isDark ? '#2a2a2a' : '#e0e0e0', 
+                color: isDark ? '#ff9800' : '#d32f2f',
+                fontFamily: 'monospace',
+                borderRadius: 4,
+                paddingHorizontal: 4
+              }
             }}
           >
             {content}
