@@ -39,3 +39,9 @@ yarn-error.*
 # generated native folders
 /ios
 /android
+
+# Private Docs
+docs/04_FUTURE_SCOPE.md
+
+# Private Docs
+docs/
