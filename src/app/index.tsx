@@ -251,7 +251,12 @@ export default function HomeScreen() {
             <Text style={{ fontSize: 20, fontWeight: 'bold', color: isDark ? '#fff' : '#000' }}>
               <Text style={{ color: '#3498db' }}>O</Text>pener
             </Text>
-          )
+          ),
+          headerRight: () => (
+            <TouchableOpacity onPress={() => router.push('/settings')} hitSlop={10} style={{ marginRight: 15 }}>
+              <MaterialIcons name="settings" size={22} color={isDark ? '#ccc' : '#444'} />
+            </TouchableOpacity>
+          ),
         }}
       />
       <QuickAccessSection
