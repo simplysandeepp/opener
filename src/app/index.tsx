@@ -33,7 +33,7 @@ export default function HomeScreen() {
     tabsRef.current = tabs;
   });
 
-  const { files, error: directoryError, refresh: refreshDirectory } = useDirectory(rootUri);
+  const { files, error: directoryError, isLoading: directoryLoading, refresh: refreshDirectory, primeFiles } = useDirectory(rootUri);
   const { recents, addRecent } = useRecents();
   const { favorites, isFavorite, toggleFavorite } = useFavorites();
   const {
@@ -56,9 +56,11 @@ export default function HomeScreen() {
   const openFolder = useCallback(async (uri: string) => {
     setHistory([]);
     setRootUri(uri);
-    await AsyncStorage.setItem('opener_current_folder', uri);
-    await AsyncStorage.setItem('opener_history', JSON.stringify([]));
-    await AsyncStorage.setItem('last_opened_screen', 'index');
+    await AsyncStorage.multiSet([
+      ['opener_current_folder', uri],
+      ['opener_history', JSON.stringify([])],
+      ['last_opened_screen', 'index'],
+    ]);
   }, []);
 
   const loadSavedDirectory = useCallback(async () => {
@@ -94,9 +96,11 @@ export default function HomeScreen() {
       const previousUri = newHistory.pop()!;
       setHistory(newHistory);
       setRootUri(previousUri);
-      await AsyncStorage.setItem('opener_history', JSON.stringify(newHistory));
-      await AsyncStorage.setItem('opener_current_folder', previousUri);
-      await AsyncStorage.setItem('last_opened_screen', 'index');
+      await AsyncStorage.multiSet([
+        ['opener_history', JSON.stringify(newHistory)],
+        ['opener_current_folder', previousUri],
+        ['last_opened_screen', 'index'],
+      ]);
     }
   }, [history]);
 
@@ -137,22 +141,26 @@ export default function HomeScreen() {
   };
 
   const handleItemPress = async (itemUri: string, filename: string) => {
-    try {
-      const isFolder = await StorageProvider.isDirectory(itemUri);
-      if (!isFolder) throw new Error('Not a directory');
-
-      closeSearch();
-      const newHistory = [...history, rootUri!];
-      setHistory(newHistory);
-      setRootUri(itemUri);
-
-      await AsyncStorage.setItem('opener_history', JSON.stringify(newHistory));
-      await AsyncStorage.setItem('opener_current_folder', itemUri);
-      await AsyncStorage.setItem('last_opened_screen', 'index');
-    } catch {
+    // listDirectoryOrNull doubles as the folder-vs-file check; reusing its result via
+    // primeFiles means entering a folder doesn't list it twice (once to check, once to show).
+    const children = await StorageProvider.listDirectoryOrNull(itemUri);
+    if (children === null) {
       closeSearch();
       openFile(itemUri, filename);
+      return;
     }
+
+    closeSearch();
+    const newHistory = [...history, rootUri!];
+    setHistory(newHistory);
+    primeFiles(children);
+    setRootUri(itemUri);
+
+    await AsyncStorage.multiSet([
+      ['opener_history', JSON.stringify(newHistory)],
+      ['opener_current_folder', itemUri],
+      ['last_opened_screen', 'index'],
+    ]);
   };
 
   const handleOpenFavorite = (entry: FavoriteEntry) => {
@@ -307,6 +315,9 @@ export default function HomeScreen() {
                 <Text style={[styles.pathText, { color: isDark ? '#ccc' : '#444', marginLeft: history.length > 0 ? 10 : 0 }]} numberOfLines={1}>
                   {getDisplayName(rootUri)}
                 </Text>
+                {directoryLoading && (
+                  <ActivityIndicator size="small" color={isDark ? '#ccc' : '#444'} style={styles.searchBtn} />
+                )}
                 <TouchableOpacity onPress={handleAddPress} hitSlop={10} style={styles.searchBtn}>
                   <MaterialIcons name="add" size={22} color={isDark ? '#ccc' : '#444'} />
                 </TouchableOpacity>
