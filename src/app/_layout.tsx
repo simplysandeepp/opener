@@ -2,9 +2,11 @@ import { Stack } from 'expo-router';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
 import { AppLockProvider } from '../contexts/AppLockContext';
 import { TabsProvider } from '../contexts/TabsContext';
+import { useIncomingFileIntent } from '../hooks/useIncomingFileIntent';
 
 function RootNavigator() {
   const { isDark } = useTheme();
+  useIncomingFileIntent();
 
   return (
     <Stack
