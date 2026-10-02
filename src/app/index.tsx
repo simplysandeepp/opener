@@ -12,8 +12,10 @@ import { useSearch } from '../hooks/useSearch';
 import { getDisplayName, getFileIcon, isLikelyFile } from '../lib/fileKind';
 import { QuickAccessSection } from '../components/QuickAccessSection';
 import { PromptModal } from '../components/PromptModal';
+import { FolderRagSheet } from '../components/FolderRagSheet';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTabs } from '../contexts/TabsContext';
+import { useGroqSettings } from '../hooks/useGroqSettings';
 
 type Prompt =
   | { type: 'newFile' }
@@ -25,8 +27,10 @@ export default function HomeScreen() {
   const [history, setHistory] = useState<string[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
+  const [ragVisible, setRagVisible] = useState(false);
   const { isDark } = useTheme();
   const { tabs, openTab } = useTabs();
+  const { apiKey, model, aiEnabled } = useGroqSettings();
   // Read inside a once-only mount effect without making it re-run as tabs changes during the session.
   const tabsRef = useRef(tabs);
   useEffect(() => {
@@ -309,6 +313,11 @@ export default function HomeScreen() {
                 <TouchableOpacity onPress={handleAddPress} hitSlop={10} style={styles.searchBtn}>
                   <MaterialIcons name="add" size={22} color={isDark ? '#ccc' : '#444'} />
                 </TouchableOpacity>
+                {aiEnabled && (
+                  <TouchableOpacity onPress={() => setRagVisible(true)} hitSlop={10} style={styles.searchBtn}>
+                    <MaterialIcons name="auto-awesome" size={19} color={isDark ? '#ccc' : '#444'} />
+                  </TouchableOpacity>
+                )}
                 <TouchableOpacity onPress={() => setShowSearch(true)} hitSlop={10} style={styles.searchBtn}>
                   <MaterialIcons name="search" size={20} color={isDark ? '#ccc' : '#444'} />
                 </TouchableOpacity>
@@ -380,6 +389,18 @@ export default function HomeScreen() {
         onCancel={() => setPrompt(null)}
         onSubmit={handlePromptSubmit}
       />
+      {rootUri && (
+        <FolderRagSheet
+          visible={ragVisible}
+          onClose={() => setRagVisible(false)}
+          isDark={isDark}
+          folderUri={rootUri}
+          folderName={getDisplayName(rootUri)}
+          apiKey={apiKey}
+          model={model}
+          onOpenSource={openFile}
+        />
+      )}
     </View>
   );
 }
