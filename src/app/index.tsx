@@ -12,10 +12,8 @@ import { useSearch } from '../hooks/useSearch';
 import { getDisplayName, getFileIcon, isLikelyFile } from '../lib/fileKind';
 import { QuickAccessSection } from '../components/QuickAccessSection';
 import { PromptModal } from '../components/PromptModal';
-import { FolderRagSheet } from '../components/FolderRagSheet';
 import { useTheme } from '../contexts/ThemeContext';
 import { useTabs } from '../contexts/TabsContext';
-import { useGroqSettings } from '../hooks/useGroqSettings';
 
 type Prompt =
   | { type: 'newFile' }
@@ -27,10 +25,8 @@ export default function HomeScreen() {
   const [history, setHistory] = useState<string[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
-  const [ragVisible, setRagVisible] = useState(false);
   const { isDark } = useTheme();
   const { tabs, openTab } = useTabs();
-  const { apiKey, model, aiEnabled } = useGroqSettings();
   // Read inside a once-only mount effect without making it re-run as tabs changes during the session.
   const tabsRef = useRef(tabs);
   useEffect(() => {
@@ -378,11 +374,6 @@ export default function HomeScreen() {
               );
             }}
           />
-          {aiEnabled && (
-            <TouchableOpacity style={styles.fab} onPress={() => setRagVisible(true)}>
-              <MaterialIcons name="auto-awesome" size={24} color="#fff" />
-            </TouchableOpacity>
-          )}
         </View>
       )}
       <PromptModal
@@ -399,18 +390,6 @@ export default function HomeScreen() {
         onCancel={() => setPrompt(null)}
         onSubmit={handlePromptSubmit}
       />
-      {rootUri && (
-        <FolderRagSheet
-          visible={ragVisible}
-          onClose={() => setRagVisible(false)}
-          isDark={isDark}
-          folderUri={rootUri}
-          folderName={getDisplayName(rootUri)}
-          apiKey={apiKey}
-          model={model}
-          onOpenSource={openFile}
-        />
-      )}
     </View>
   );
 }
@@ -423,22 +402,6 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#007AFF', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   listContainer: { flex: 1 },
-  fab: {
-    position: 'absolute',
-    right: 20,
-    bottom: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: '#007AFF',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 3,
-  },
   headerRow: { flexDirection: 'row', alignItems: 'center', padding: 15 },
   backBtn: { padding: 4 },
   pathText: { flex: 1, fontSize: 14, fontWeight: '600', marginRight: 10 },
