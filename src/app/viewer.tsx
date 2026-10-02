@@ -2,8 +2,11 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, useColorScheme, Alert, TouchableOpacity, TextInput } from 'react-native';
 import { useLocalSearchParams, useNavigation, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { MaterialIcons } from '@expo/vector-icons';
 import { useFileContent } from '../hooks/useFileContent';
 import { getFileHandler } from '../lib/fileHandlers';
+import { useGroqSettings } from '../hooks/useGroqSettings';
+import { FileChatSheet } from '../components/FileChatSheet';
 
 export default function ViewerScreen() {
   const { name } = useLocalSearchParams<{ name: string }>();
@@ -12,9 +15,11 @@ export default function ViewerScreen() {
   const [editedContent, setEditedContent] = useState<string>('');
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [chatVisible, setChatVisible] = useState(false);
   const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
+  const { loaded: settingsLoaded, apiKey, model, aiEnabled } = useGroqSettings();
 
   const decodedName = name ? decodeURIComponent(name) : '';
   const extension = decodedName.split('.').pop()?.toLowerCase();
@@ -151,6 +156,20 @@ export default function ViewerScreen() {
         }}
       />
       {renderContent()}
+      {settingsLoaded && aiEnabled && !loading && !error && content !== null && (
+        <TouchableOpacity style={styles.fab} onPress={() => setChatVisible(true)}>
+          <MaterialIcons name="chat" size={24} color="#fff" />
+        </TouchableOpacity>
+      )}
+      <FileChatSheet
+        visible={chatVisible}
+        onClose={() => setChatVisible(false)}
+        isDark={isDark}
+        fileName={decodedName}
+        content={content ?? ''}
+        apiKey={apiKey}
+        model={model}
+      />
     </View>
   );
 }
@@ -164,5 +183,21 @@ const styles = StyleSheet.create({
     padding: 15,
     fontSize: 14,
     fontFamily: 'monospace',
-  }
+  },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
 });
