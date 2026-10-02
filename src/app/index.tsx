@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { ActivityIndicator, View, Text, StyleSheet, TouchableOpacity, FlatList, BackHandler, TextInput, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, Stack } from 'expo-router';
@@ -13,6 +13,7 @@ import { getDisplayName, getFileIcon, isLikelyFile } from '../lib/fileKind';
 import { QuickAccessSection } from '../components/QuickAccessSection';
 import { PromptModal } from '../components/PromptModal';
 import { useTheme } from '../contexts/ThemeContext';
+import { useTabs } from '../contexts/TabsContext';
 
 type Prompt =
   | { type: 'newFile' }
@@ -25,6 +26,12 @@ export default function HomeScreen() {
   const [showSearch, setShowSearch] = useState(false);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
   const { isDark } = useTheme();
+  const { tabs, openTab } = useTabs();
+  // Read inside a once-only mount effect without making it re-run as tabs changes during the session.
+  const tabsRef = useRef(tabs);
+  useEffect(() => {
+    tabsRef.current = tabs;
+  });
 
   const { files, refresh: refreshDirectory } = useDirectory(rootUri);
   const { recents, addRecent } = useRecents();
@@ -40,12 +47,11 @@ export default function HomeScreen() {
     resetSearch,
   } = useSearch(rootUri, files);
 
-  const openFile = useCallback(async (uri: string, name: string) => {
+  const openFile = useCallback((uri: string, name: string) => {
     addRecent(uri, name);
-    await AsyncStorage.setItem('current_file_uri', uri);
-    await AsyncStorage.setItem('last_opened_screen', 'viewer');
-    router.push({ pathname: '/viewer', params: { name } });
-  }, [addRecent]);
+    openTab(uri, name);
+    router.push('/viewer');
+  }, [addRecent, openTab]);
 
   const openFolder = useCallback(async (uri: string) => {
     setHistory([]);
@@ -69,15 +75,9 @@ export default function HomeScreen() {
         setRootUri(savedRoot);
       }
 
-      // If they closed the app while viewing a file, reopen it automatically
-      if (lastScreen === 'viewer') {
-        const fileUri = await AsyncStorage.getItem('current_file_uri');
-        if (fileUri) {
-          router.push({
-            pathname: '/viewer',
-            params: { name: getDisplayName(fileUri) }
-          });
-        }
+      // If they closed the app while viewing a file, reopen the viewer with its open tabs
+      if (lastScreen === 'viewer' && tabsRef.current.length > 0) {
+        router.push('/viewer');
       }
     } catch (e) {
       console.warn('Failed to load saved directory', e);
