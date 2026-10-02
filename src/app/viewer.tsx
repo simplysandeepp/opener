@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, useColorScheme, Alert, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { useLocalSearchParams, useNavigation, Stack } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -11,6 +11,7 @@ import { InlineActionBar, type InlineActionKind } from '../components/InlineActi
 import { DiffReviewSheet } from '../components/DiffReviewSheet';
 import { useInlineAction } from '../hooks/useInlineAction';
 import { PromptModal } from '../components/PromptModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 const INLINE_ACTION_LABELS: Record<InlineActionKind, string> = {
   summarize: 'Summarize',
@@ -31,8 +32,7 @@ export default function ViewerScreen() {
   const [pendingSelection, setPendingSelection] = useState<{ start: number; end: number; text: string } | null>(null);
   const [languagePromptVisible, setLanguagePromptVisible] = useState(false);
   const navigation = useNavigation();
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
   const { loaded: settingsLoaded, apiKey, model, aiEnabled } = useGroqSettings();
   const inlineAction = useInlineAction();
 

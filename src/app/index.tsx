@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ActivityIndicator, View, Text, StyleSheet, TouchableOpacity, FlatList, useColorScheme, BackHandler, TextInput, Alert } from 'react-native';
+import { ActivityIndicator, View, Text, StyleSheet, TouchableOpacity, FlatList, BackHandler, TextInput, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, Stack } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -12,6 +12,7 @@ import { useSearch } from '../hooks/useSearch';
 import { getDisplayName, getFileIcon, isLikelyFile } from '../lib/fileKind';
 import { QuickAccessSection } from '../components/QuickAccessSection';
 import { PromptModal } from '../components/PromptModal';
+import { useTheme } from '../contexts/ThemeContext';
 
 type Prompt =
   | { type: 'newFile' }
@@ -23,8 +24,7 @@ export default function HomeScreen() {
   const [history, setHistory] = useState<string[]>([]);
   const [showSearch, setShowSearch] = useState(false);
   const [prompt, setPrompt] = useState<Prompt | null>(null);
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark } = useTheme();
 
   const { files, refresh: refreshDirectory } = useDirectory(rootUri);
   const { recents, addRecent } = useRecents();
