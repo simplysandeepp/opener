@@ -32,6 +32,8 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
 
       - name: Build APK locally on GitHub Runner
+        env:
+          GRADLE_OPTS: -Dorg.gradle.jvmargs="-Xmx4g -XX:MaxMetaspaceSize=1g -Dfile.encoding=UTF-8"
         run: |
           # We use --local to build on the GitHub runner instead of EAS servers
           # This saves your EAS free tier quota and doesn't wait in the EAS queue.
