@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator, useColorScheme, Alert, TouchableOpacity, TextInput } from 'react-native';
-import { useLocalSearchParams, Stack } from 'expo-router';
+import { useLocalSearchParams, useNavigation, Stack } from 'expo-router';
 import { StorageAccessFramework, readAsStringAsync, copyAsync, cacheDirectory, deleteAsync } from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import Markdown from 'react-native-markdown-display';
@@ -15,22 +15,35 @@ export default function ViewerScreen() {
   const [error, setError] = useState<string | null>(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const navigation = useNavigation();
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   const decodedName = name ? decodeURIComponent(name) : '';
   const extension = decodedName.split('.').pop()?.toLowerCase();
 
-  useEffect(() => {
-    loadUriAndContent();
-    
-    // Cleanup function runs when the user presses "Back" to leave the viewer
-    return () => {
-      AsyncStorage.setItem('last_opened_screen', 'index');
-    };
-  }, []);
+  const loadFileContent = useCallback(async (fileUri: string) => {
+    try {
+      setLoading(true);
+      setError(null);
 
-  const loadUriAndContent = async () => {
+      const tempFileUri = cacheDirectory + 'temp_' + Date.now() + (extension ? '.' + extension : '');
+      await copyAsync({ from: fileUri, to: tempFileUri });
+
+      const fileString = await readAsStringAsync(tempFileUri);
+      setContent(fileString);
+      setEditedContent(fileString);
+
+      await deleteAsync(tempFileUri, { idempotent: true });
+    } catch (e: any) {
+      console.warn('Error reading file:', e);
+      setError(`Could not read this file. Error: ${e.message || e}\nURI: ${fileUri}`);
+    } finally {
+      setLoading(false);
+    }
+  }, [extension]);
+
+  const loadUriAndContent = useCallback(async () => {
     try {
       const storedUri = await AsyncStorage.getItem('current_file_uri');
       if (storedUri) {
@@ -40,31 +53,48 @@ export default function ViewerScreen() {
         setError('No file URI found.');
         setLoading(false);
       }
-    } catch (e) {
+    } catch {
       setError('Failed to load file reference.');
       setLoading(false);
     }
-  };
+  }, [loadFileContent]);
 
-  const loadFileContent = async (fileUri: string) => {
-    try {
-      setLoading(true);
-      setError(null);
-      
-      const tempFileUri = cacheDirectory + 'temp_' + Date.now() + (extension ? '.' + extension : '');
-      await copyAsync({ from: fileUri, to: tempFileUri });
-      
-      const fileString = await readAsStringAsync(tempFileUri);
-      setContent(fileString);
-      setEditedContent(fileString);
-      
-      await deleteAsync(tempFileUri, { idempotent: true });
-    } catch (e: any) {
-      console.warn('Error reading file:', e);
-      setError(`Could not read this file. Error: ${e.message || e}\nURI: ${fileUri}`);
-    } finally {
-      setLoading(false);
-    }
+  useEffect(() => {
+    loadUriAndContent();
+
+    // Cleanup function runs when the user presses "Back" to leave the viewer
+    return () => {
+      AsyncStorage.setItem('last_opened_screen', 'index');
+    };
+  }, [loadUriAndContent]);
+
+  // Warn before leaving (Back button / gesture) while there are unsaved edits
+  const hasUnsavedChanges = isEditing && editedContent !== content;
+  useEffect(() => {
+    if (!hasUnsavedChanges) return;
+    return navigation.addListener('beforeRemove', (e) => {
+      e.preventDefault();
+      Alert.alert(
+        'Discard changes?',
+        'You have unsaved changes. If you leave now they will be lost.',
+        [
+          { text: 'Keep editing', style: 'cancel' },
+          { text: 'Discard', style: 'destructive', onPress: () => navigation.dispatch(e.data.action) },
+        ]
+      );
+    });
+  }, [hasUnsavedChanges, navigation]);
+
+  const cancelEditing = () => {
+    const discard = () => {
+      setIsEditing(false);
+      setEditedContent(content || '');
+    };
+    if (!hasUnsavedChanges) return discard();
+    Alert.alert('Discard changes?', 'Your edits will be lost.', [
+      { text: 'Keep editing', style: 'cancel' },
+      { text: 'Discard', style: 'destructive', onPress: discard },
+    ]);
   };
 
   const saveFileContent = async () => {
@@ -226,7 +256,7 @@ export default function ViewerScreen() {
             </TouchableOpacity>
           ),
           headerLeft: isEditing ? () => (
-             <TouchableOpacity onPress={() => { setIsEditing(false); setEditedContent(content || ''); }} style={{ marginLeft: 15 }}>
+             <TouchableOpacity onPress={cancelEditing} style={{ marginLeft: 15 }}>
                <Text style={{ color: '#ff3b30', fontSize: 16 }}>Cancel</Text>
              </TouchableOpacity>
           ) : undefined
