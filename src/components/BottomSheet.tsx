@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Animated, Dimensions, KeyboardAvoidingView, Modal, Platform, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
+import { Animated, Dimensions, KeyboardAvoidingView, Modal, StyleSheet, TouchableOpacity, TouchableWithoutFeedback, View } from 'react-native';
 
 interface BottomSheetProps {
   visible: boolean;
@@ -40,7 +40,7 @@ export function BottomSheet({ visible, onClose, isDark, heightPercent = 0.75, ch
         <View style={styles.backdrop} />
       </TouchableWithoutFeedback>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
         style={styles.avoidingContainer}
         pointerEvents="box-none"
       >

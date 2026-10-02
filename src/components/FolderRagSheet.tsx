@@ -43,10 +43,10 @@ export function FolderRagSheet({ visible, onClose, isDark, folderUri, folderName
   };
 
   return (
-    <BottomSheet visible={visible} onClose={onClose} isDark={isDark}>
+    <BottomSheet visible={visible} onClose={onClose} isDark={isDark} heightPercent={0.92}>
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>
-          Ask AI about {folderName}
+          Ask OpenerAi about {folderName}
         </Text>
         <TouchableOpacity onPress={onClose} hitSlop={10}>
           <MaterialIcons name="close" size={22} color={isDark ? '#ccc' : '#444'} />

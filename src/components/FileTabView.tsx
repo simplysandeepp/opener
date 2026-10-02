@@ -185,7 +185,7 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
     if (isEditing) {
       const hasSelection = aiEnabled && !!apiKey && selection.end > selection.start;
       return (
-        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
           <TextInput
             style={[styles.editor, { color: isDark ? '#ccc' : '#333', backgroundColor: isDark ? '#1a1a1a' : '#f9f9f9' }]}
             multiline
