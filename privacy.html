@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Privacy Policy — Opener</title>
+<style>
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 680px; margin: 60px auto; padding: 0 20px; line-height: 1.6; color: #222; }
+  h1 { font-size: 26px; }
+  h2 { font-size: 18px; margin-top: 32px; }
+  a { color: #007AFF; }
+  code { background: #f0f0f0; padding: 1px 5px; border-radius: 4px; font-size: 0.9em; }
+</style>
+</head>
+<body>
+  <h1>Privacy Policy for Opener</h1>
+  <p><em>Last updated: October 2026</em></p>
+  <p>Opener is a local, offline-first file viewer and editor for Android. This page explains what
+  data the app accesses and when, in plain language.</p>
+
+  <h2>Your files stay on your device by default</h2>
+  <p>Opener accesses files and folders you explicitly select, using Android's Storage Access
+  Framework. File contents are read and written locally on your device. Opener does not upload,
+  transmit, or share your file contents with anyone, unless you explicitly use one of the optional
+  features described below.</p>
+
+  <h2>Optional: AI features (powered by Groq)</h2>
+  <p>AI features are <strong>off by default</strong>. If you turn them on and add your own Groq API
+  key:</p>
+  <ul>
+    <li>The text of a file you're viewing, or a passage you select, is sent to Groq's API
+    (<code>api.groq.com</code>) only when you explicitly ask a question or request an action
+    (summarize, rewrite, translate, etc.).</li>
+    <li>Your Groq API key is stored locally on your device using Android's secure keystore (via
+    <code>expo-secure-store</code>). It is never sent to Opener's developer or any third party
+    other than Groq itself, as part of your own API requests.</li>
+    <li>You can turn AI features off, or remove your key, at any time in Settings.</li>
+  </ul>
+  <p>See <a href="https://groq.com/privacy-policy/">Groq's own privacy policy</a> for how they
+  handle data sent to their API.</p>
+
+  <h2>Optional: Google Drive backup</h2>
+  <p>Google Drive sync is <strong>off by default</strong> and requires you to sign in with your own
+  Google account. If you connect it:</p>
+  <ul>
+    <li>Opener requests the <code>drive.file</code> OAuth scope, meaning it can only access files
+    and folders it creates itself — never the rest of your Google Drive.</li>
+    <li>It creates a folder named "Opener" in your Drive and stores: your favorites and
+    recent-files list, app preferences (theme, AI settings), and copies of files you explicitly
+    choose to back up (for example, starred files).</li>
+    <li>Your Groq API key is <strong>never</strong> included in any Drive backup.</li>
+    <li>You can disconnect at any time in Settings; disconnecting stops future syncing but does not
+    delete what's already in your Drive (you can delete the "Opener" folder yourself at any
+    time).</li>
+  </ul>
+
+  <h2>What we don't do</h2>
+  <ul>
+    <li>No analytics, no advertising, no tracking SDKs.</li>
+    <li>No account system of our own — the only sign-in is Google's, and only if you choose to use
+    Drive backup.</li>
+    <li>No data is sold or shared with third parties beyond what's described above (Groq, if you
+    enable AI; Google Drive, if you enable backup — both entirely at your choice and under your own
+    accounts).</li>
+  </ul>
+
+  <h2>Contact</h2>
+  <p>For privacy questions about Opener, please
+  <a href="https://github.com/simplysandeepp/opener/issues">open an issue on GitHub</a>.</p>
+</body>
+</html>
