@@ -1,9 +1,16 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, useColorScheme, View } from 'react-native';
+import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useGroqSettings } from '../hooks/useGroqSettings';
 import { listModels, GroqError } from '../lib/llm/groq';
 import { SelectModal } from '../components/SelectModal';
+import { useTheme, type ThemePreference } from '../contexts/ThemeContext';
+
+const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
+  { value: 'system', label: 'System' },
+  { value: 'light', label: 'Light' },
+  { value: 'dark', label: 'Dark' },
+];
 
 function errorMessage(e: unknown): string {
   if (e instanceof GroqError) return e.message;
@@ -11,8 +18,7 @@ function errorMessage(e: unknown): string {
 }
 
 export default function SettingsScreen() {
-  const colorScheme = useColorScheme();
-  const isDark = colorScheme === 'dark';
+  const { isDark, preference, setPreference } = useTheme();
   const { loaded, apiKey, setApiKey, model, setModel, aiEnabled, setAiEnabled } = useGroqSettings();
 
   const [keyDraft, setKeyDraft] = useState('');
@@ -74,7 +80,28 @@ export default function SettingsScreen() {
     <ScrollView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f5f5f5' }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: 'Settings' }} />
 
-      <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666' }]}>AI FEATURES (GROQ)</Text>
+      <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666' }]}>APPEARANCE</Text>
+      <View style={[styles.card, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
+        <Text style={[styles.label, { color: isDark ? '#fff' : '#000' }]}>Theme</Text>
+        <View style={[styles.segmented, { borderColor: isDark ? '#444' : '#ccc' }]}>
+          {THEME_OPTIONS.map((option) => {
+            const selected = preference === option.value;
+            return (
+              <TouchableOpacity
+                key={option.value}
+                style={[styles.segment, selected && styles.segmentSelected]}
+                onPress={() => setPreference(option.value)}
+              >
+                <Text style={{ color: selected ? '#fff' : (isDark ? '#ccc' : '#444'), fontWeight: selected ? '600' : '400' }}>
+                  {option.label}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666', marginTop: 20 }]}>AI FEATURES (GROQ)</Text>
       <View style={[styles.card, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
         <Text style={[styles.notice, { color: isDark ? '#aaa' : '#666' }]}>
           Opener can optionally use Groq&rsquo;s AI to help with your files (summaries, explanations, Q&amp;A).
@@ -147,6 +174,9 @@ const styles = StyleSheet.create({
   notice: { fontSize: 13, lineHeight: 18, marginBottom: 16 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   label: { fontSize: 15, fontWeight: '500' },
+  segmented: { flexDirection: 'row', borderWidth: 1, borderRadius: 8, overflow: 'hidden', marginTop: 10 },
+  segment: { flex: 1, alignItems: 'center', paddingVertical: 10 },
+  segmentSelected: { backgroundColor: '#007AFF' },
   hint: { fontSize: 12, marginTop: 4 },
   input: { borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, fontSize: 15, marginTop: 8 },
   buttonRow: { flexDirection: 'row', gap: 12, marginTop: 10 },
