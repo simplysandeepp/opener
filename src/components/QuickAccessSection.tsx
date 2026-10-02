@@ -15,7 +15,7 @@ interface ChipProps {
 function Chip({ icon, iconColor, label, isDark, onPress }: ChipProps) {
   return (
     <TouchableOpacity
-      style={[styles.chip, { backgroundColor: isDark ? '#1e1e1e' : '#eaeaea' }]}
+      style={[styles.chip, { backgroundColor: isDark ? '#17171a' : '#eaeaea' }]}
       onPress={onPress}
     >
       <MaterialIcons name={icon as any} size={16} color={iconColor} style={styles.chipIcon} />

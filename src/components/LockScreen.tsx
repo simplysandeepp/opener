@@ -24,7 +24,7 @@ export function LockScreen({ onUnlock, authenticating }: LockScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#121212', justifyContent: 'center', alignItems: 'center', padding: 30 },
+  container: { flex: 1, backgroundColor: '#0a0a0c', justifyContent: 'center', alignItems: 'center', padding: 30 },
   title: { color: '#fff', fontSize: 18, fontWeight: '600', marginTop: 16, marginBottom: 24 },
   button: { backgroundColor: '#007AFF', paddingHorizontal: 24, paddingVertical: 12, borderRadius: 8, minWidth: 120, alignItems: 'center' },
   buttonText: { color: '#fff', fontSize: 15, fontWeight: '600' },

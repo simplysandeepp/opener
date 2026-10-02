@@ -42,7 +42,7 @@ export default function ViewerScreen() {
   }, [anyDirty, navigation]);
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#121212' : '#ffffff' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0a0a0c' : '#ffffff' }]}>
       <Stack.Screen
         options={{
           title: headerState?.title ?? 'File Viewer',

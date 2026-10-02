@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Linking, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { Stack } from 'expo-router';
 import { useGroqSettings } from '../hooks/useGroqSettings';
 import { listModels, GroqError } from '../lib/llm/groq';
@@ -75,6 +75,7 @@ export default function SettingsScreen() {
   };
 
   const [keyDraft, setKeyDraft] = useState('');
+  const [isEditingKey, setIsEditingKey] = useState(!apiKey);
   const [testing, setTesting] = useState(false);
   const [modelPickerVisible, setModelPickerVisible] = useState(false);
   const [modelOptions, setModelOptions] = useState<{ id: string; label: string }[]>([]);
@@ -83,9 +84,37 @@ export default function SettingsScreen() {
   const effectiveKey = keyDraft || apiKey || '';
 
   const handleSaveKey = async () => {
-    await setApiKey(keyDraft);
+    try {
+      await setApiKey(keyDraft);
+      setKeyDraft('');
+      setIsEditingKey(false);
+      Alert.alert('Saved', 'API key saved. It stays on this device until you remove it here or delete the app.');
+    } catch {
+      Alert.alert('Could not save key', 'Something went wrong saving the key to this device. Please try again.');
+    }
+  };
+
+  const handleCancelEditKey = () => {
     setKeyDraft('');
-    Alert.alert('Saved', apiKey || keyDraft ? 'API key saved.' : 'API key cleared.');
+    setIsEditingKey(false);
+  };
+
+  const handleRemoveKey = () => {
+    Alert.alert('Remove API key?', 'AI features will turn off until you add a key again.', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Remove',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await setApiKey('');
+            setIsEditingKey(true);
+          } catch {
+            Alert.alert('Could not remove key', 'Something went wrong. Please try again.');
+          }
+        },
+      },
+    ]);
   };
 
   const handleTestKey = async () => {
@@ -123,18 +152,18 @@ export default function SettingsScreen() {
 
   if (!loaded) {
     return (
-      <View style={[styles.container, styles.center, { backgroundColor: isDark ? '#121212' : '#f5f5f5' }]}>
+      <View style={[styles.container, styles.center, { backgroundColor: isDark ? '#0a0a0c' : '#f5f5f5' }]}>
         <ActivityIndicator size="large" color="#007AFF" />
       </View>
     );
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f5f5f5' }]} contentContainerStyle={styles.content}>
+    <ScrollView style={[styles.container, { backgroundColor: isDark ? '#0a0a0c' : '#f5f5f5' }]} contentContainerStyle={styles.content}>
       <Stack.Screen options={{ title: 'Settings' }} />
 
       <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666' }]}>APPEARANCE</Text>
-      <View style={[styles.card, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
+      <View style={[styles.card, { backgroundColor: isDark ? '#17171a' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
         <Text style={[styles.label, { color: isDark ? '#fff' : '#000' }]}>Theme</Text>
         <View style={[styles.segmented, { borderColor: isDark ? '#444' : '#ccc' }]}>
           {THEME_OPTIONS.map((option) => {
@@ -155,7 +184,7 @@ export default function SettingsScreen() {
       </View>
 
       <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666', marginTop: 20 }]}>AI FEATURES (GROQ)</Text>
-      <View style={[styles.card, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
+      <View style={[styles.card, { backgroundColor: isDark ? '#17171a' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
         <Text style={[styles.notice, { color: isDark ? '#aaa' : '#666' }]}>
           Opener can optionally use Groq&rsquo;s AI to help with your files (summaries, explanations, Q&amp;A).
           This is off by default and the app works fully offline without it. When enabled, the text of
@@ -170,29 +199,55 @@ export default function SettingsScreen() {
           <Text style={[styles.hint, { color: isDark ? '#777' : '#999' }]}>Add an API key below to enable AI features.</Text>
         )}
 
-        <Text style={[styles.label, { color: isDark ? '#fff' : '#000', marginTop: 16 }]}>Groq API key</Text>
-        <TextInput
-          value={keyDraft}
-          onChangeText={setKeyDraft}
-          placeholder={apiKey ? '•••••••••••••••••• (saved)' : 'gsk_...'}
-          placeholderTextColor={isDark ? '#777' : '#999'}
-          secureTextEntry
-          autoCapitalize="none"
-          autoCorrect={false}
-          style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#444' : '#ccc' }]}
-        />
-        <View style={styles.buttonRow}>
-          <TouchableOpacity style={styles.secondaryButton} onPress={handleTestKey} disabled={testing}>
-            {testing ? <ActivityIndicator size="small" color="#007AFF" /> : <Text style={styles.secondaryButtonText}>Test key</Text>}
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.primaryButton} onPress={handleSaveKey} disabled={!keyDraft}>
-            <Text style={styles.primaryButtonText}>Save key</Text>
+        <View style={styles.keyLabelRow}>
+          <Text style={[styles.label, { color: isDark ? '#fff' : '#000', marginTop: 16 }]}>Groq API key</Text>
+          <TouchableOpacity
+            style={{ marginTop: 16 }}
+            onPress={() => Linking.openURL('https://console.groq.com/keys')}
+          >
+            <Text style={styles.getKeyLink}>New to Groq? Get a free API key →</Text>
           </TouchableOpacity>
         </View>
-        {apiKey && (
-          <TouchableOpacity onPress={() => setApiKey('')}>
-            <Text style={styles.removeKeyText}>Remove saved key</Text>
-          </TouchableOpacity>
+
+        {apiKey && !isEditingKey ? (
+          <View style={[styles.savedKeyRow, { borderColor: isDark ? '#444' : '#ccc' }]}>
+            <Text style={{ color: isDark ? '#aaa' : '#666', fontSize: 14 }}>•••••••••••••••••• (saved on this device)</Text>
+            <View style={styles.buttonRow}>
+              <TouchableOpacity onPress={() => setIsEditingKey(true)}>
+                <Text style={styles.changeText}>Change</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={handleRemoveKey}>
+                <Text style={[styles.removeKeyText, { marginTop: 0 }]}>Remove</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        ) : (
+          <>
+            <TextInput
+              autoFocus={!!apiKey}
+              value={keyDraft}
+              onChangeText={setKeyDraft}
+              placeholder="gsk_..."
+              placeholderTextColor={isDark ? '#777' : '#999'}
+              secureTextEntry
+              autoCapitalize="none"
+              autoCorrect={false}
+              style={[styles.input, { color: isDark ? '#fff' : '#000', borderColor: isDark ? '#444' : '#ccc' }]}
+            />
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.secondaryButton} onPress={handleTestKey} disabled={testing}>
+                {testing ? <ActivityIndicator size="small" color="#007AFF" /> : <Text style={styles.secondaryButtonText}>Test key</Text>}
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.primaryButton} onPress={handleSaveKey} disabled={!keyDraft}>
+                <Text style={styles.primaryButtonText}>Save key</Text>
+              </TouchableOpacity>
+            </View>
+            {apiKey && (
+              <TouchableOpacity onPress={handleCancelEditKey}>
+                <Text style={[styles.hint, { marginTop: 10, color: isDark ? '#aaa' : '#666' }]}>Cancel</Text>
+              </TouchableOpacity>
+            )}
+          </>
         )}
 
         <Text style={[styles.label, { color: isDark ? '#fff' : '#000', marginTop: 16 }]}>Model</Text>
@@ -203,7 +258,7 @@ export default function SettingsScreen() {
       </View>
 
       <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666', marginTop: 20 }]}>SECURITY</Text>
-      <View style={[styles.card, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
+      <View style={[styles.card, { backgroundColor: isDark ? '#17171a' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
         <View style={styles.row}>
           <Text style={[styles.label, { color: isDark ? '#fff' : '#000' }]}>Require unlock to open app</Text>
           <Switch value={appLockEnabled} onValueChange={handleToggleAppLock} />
@@ -214,7 +269,7 @@ export default function SettingsScreen() {
       </View>
 
       <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666', marginTop: 20 }]}>BACKUP &amp; SYNC</Text>
-      <View style={[styles.card, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
+      <View style={[styles.card, { backgroundColor: isDark ? '#17171a' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
         <Text style={[styles.notice, { color: isDark ? '#aaa' : '#666' }]}>
           Back up your favorites, recents, and preferences to your own Google Drive (in a private
           app-only folder, not visible among your regular files), and restore them on another
@@ -269,7 +324,16 @@ const styles = StyleSheet.create({
   center: { justifyContent: 'center', alignItems: 'center' },
   content: { padding: 16 },
   sectionTitle: { fontSize: 12, fontWeight: '600', letterSpacing: 0.5, marginBottom: 8, marginLeft: 4 },
-  card: { borderRadius: 12, padding: 16 },
+  card: {
+    borderRadius: 12,
+    padding: 16,
+    borderWidth: 1,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 2,
+  },
   notice: { fontSize: 13, lineHeight: 18, marginBottom: 16 },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   label: { fontSize: 15, fontWeight: '500' },
@@ -286,4 +350,16 @@ const styles = StyleSheet.create({
   removeKeyText: { color: '#ff3b30', fontSize: 13, marginTop: 10 },
   modelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderWidth: 1, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, marginTop: 8 },
   changeText: { color: '#007AFF', fontSize: 13, fontWeight: '600' },
+  keyLabelRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap' },
+  getKeyLink: { color: '#007AFF', fontSize: 12, fontWeight: '600' },
+  savedKeyRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: 8,
+  },
 });

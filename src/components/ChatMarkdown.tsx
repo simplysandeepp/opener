@@ -23,14 +23,14 @@ export const ChatMarkdown = React.memo(function ChatMarkdown({ content, color, i
         strong: { fontWeight: '700' },
         link: { color: '#007AFF' },
         code_inline: {
-          backgroundColor: isDark ? '#1e1e1e' : '#eaeaea',
+          backgroundColor: isDark ? '#17171a' : '#eaeaea',
           color: isDark ? '#ff9800' : '#d32f2f',
           fontFamily: 'monospace',
           borderRadius: 4,
           paddingHorizontal: 4,
         },
         fence: {
-          backgroundColor: isDark ? '#1e1e1e' : '#f0f0f0',
+          backgroundColor: isDark ? '#17171a' : '#f0f0f0',
           color: isDark ? '#d4d4d4' : '#333333',
           fontFamily: 'monospace',
           fontSize: 13,
@@ -39,7 +39,7 @@ export const ChatMarkdown = React.memo(function ChatMarkdown({ content, color, i
           marginVertical: 6,
         },
         code_block: {
-          backgroundColor: isDark ? '#1e1e1e' : '#f0f0f0',
+          backgroundColor: isDark ? '#17171a' : '#f0f0f0',
           color: isDark ? '#d4d4d4' : '#333333',
           fontFamily: 'monospace',
           fontSize: 13,
