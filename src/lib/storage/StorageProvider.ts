@@ -1,4 +1,11 @@
 import { StorageAccessFramework, readAsStringAsync, copyAsync, cacheDirectory, deleteAsync } from 'expo-file-system/legacy';
+import { getMimeType } from '../mimeTypes';
+
+function splitExtension(filename: string): { base: string; ext: string } {
+  const dotIndex = filename.lastIndexOf('.');
+  if (dotIndex <= 0) return { base: filename, ext: '' };
+  return { base: filename.slice(0, dotIndex), ext: filename.slice(dotIndex + 1) };
+}
 
 /**
  * Thin wrapper over the Storage Access Framework so the rest of the app
@@ -40,5 +47,19 @@ export const StorageProvider = {
 
   async writeFile(uri: string, content: string): Promise<void> {
     await StorageAccessFramework.writeAsStringAsync(uri, content);
+  },
+
+  /** `filename` may include its extension; SAF picks the actual extension from the MIME type. */
+  async createFile(parentUri: string, filename: string): Promise<string> {
+    const { base, ext } = splitExtension(filename);
+    return StorageAccessFramework.createFileAsync(parentUri, base || filename, getMimeType(ext || 'txt'));
+  },
+
+  async createFolder(parentUri: string, name: string): Promise<string> {
+    return StorageAccessFramework.makeDirectoryAsync(parentUri, name);
+  },
+
+  async deleteEntry(uri: string): Promise<void> {
+    await deleteAsync(uri);
   },
 };

@@ -1,24 +1,32 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { ActivityIndicator, View, Text, StyleSheet, TouchableOpacity, FlatList, useColorScheme, BackHandler, TextInput } from 'react-native';
+import { ActivityIndicator, View, Text, StyleSheet, TouchableOpacity, FlatList, useColorScheme, BackHandler, TextInput, Alert } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, Stack } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StorageProvider } from '../lib/storage/StorageProvider';
+import { createNewFile, createNewFolder, deleteEntry, duplicateFile, renameFile } from '../lib/fileOps';
 import { useDirectory } from '../hooks/useDirectory';
 import { useRecents, type RecentFile } from '../hooks/useRecents';
 import { useFavorites, type FavoriteEntry } from '../hooks/useFavorites';
 import { useSearch } from '../hooks/useSearch';
 import { getDisplayName, getFileIcon, isLikelyFile } from '../lib/fileKind';
 import { QuickAccessSection } from '../components/QuickAccessSection';
+import { PromptModal } from '../components/PromptModal';
+
+type Prompt =
+  | { type: 'newFile' }
+  | { type: 'newFolder' }
+  | { type: 'rename'; uri: string; name: string };
 
 export default function HomeScreen() {
   const [rootUri, setRootUri] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
   const [showSearch, setShowSearch] = useState(false);
+  const [prompt, setPrompt] = useState<Prompt | null>(null);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  const { files } = useDirectory(rootUri);
+  const { files, refresh: refreshDirectory } = useDirectory(rootUri);
   const { recents, addRecent } = useRecents();
   const { favorites, isFavorite, toggleFavorite } = useFavorites();
   const {
@@ -155,6 +163,83 @@ export default function HomeScreen() {
     openFile(entry.uri, entry.name);
   };
 
+  const forgetFavorite = useCallback((uri: string) => {
+    if (isFavorite(uri)) toggleFavorite({ uri, name: '', isFolder: false });
+  }, [isFavorite, toggleFavorite]);
+
+  const handleDelete = (itemUri: string, filename: string) => {
+    Alert.alert('Delete', `Delete "${filename}"? This cannot be undone.`, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          try {
+            await deleteEntry(itemUri);
+            forgetFavorite(itemUri);
+            refreshDirectory();
+          } catch (e: any) {
+            Alert.alert('Error', `Could not delete "${filename}". ${e.message || ''}`);
+          }
+        },
+      },
+    ]);
+  };
+
+  const handleDuplicate = async (itemUri: string, filename: string) => {
+    try {
+      await duplicateFile(itemUri, rootUri!);
+      refreshDirectory();
+    } catch (e: any) {
+      Alert.alert('Error', `Could not duplicate "${filename}". ${e.message || ''}`);
+    }
+  };
+
+  const handleLongPress = (itemUri: string, filename: string) => {
+    const isFile = isLikelyFile(filename);
+    const options: { text: string; style?: 'default' | 'cancel' | 'destructive'; onPress?: () => void }[] = [];
+
+    if (isFile) {
+      options.push({ text: 'Rename', onPress: () => setPrompt({ type: 'rename', uri: itemUri, name: filename }) });
+      options.push({ text: 'Duplicate', onPress: () => handleDuplicate(itemUri, filename) });
+    }
+    options.push({ text: 'Delete', style: 'destructive', onPress: () => handleDelete(itemUri, filename) });
+    options.push({ text: 'Cancel', style: 'cancel' });
+
+    Alert.alert(filename, undefined, options);
+  };
+
+  const handleAddPress = () => {
+    Alert.alert('New', undefined, [
+      { text: 'New File', onPress: () => setPrompt({ type: 'newFile' }) },
+      { text: 'New Folder', onPress: () => setPrompt({ type: 'newFolder' }) },
+      { text: 'Cancel', style: 'cancel' },
+    ]);
+  };
+
+  const handlePromptSubmit = async (value: string) => {
+    if (!prompt || !rootUri || !value) {
+      setPrompt(null);
+      return;
+    }
+    const activePrompt = prompt;
+    setPrompt(null);
+
+    try {
+      if (activePrompt.type === 'newFile') {
+        await createNewFile(rootUri, value);
+      } else if (activePrompt.type === 'newFolder') {
+        await createNewFolder(rootUri, value);
+      } else {
+        await renameFile(activePrompt.uri, rootUri, value);
+        forgetFavorite(activePrompt.uri);
+      }
+      refreshDirectory();
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Something went wrong.');
+    }
+  };
+
   const isSearchingQuery = query.length > 0;
   const displayedItems = isSearchingQuery ? (recursiveResults ?? localResults).map((r) => r.uri) : files;
 
@@ -216,6 +301,9 @@ export default function HomeScreen() {
                 <Text style={[styles.pathText, { color: isDark ? '#ccc' : '#444', marginLeft: history.length > 0 ? 10 : 0 }]} numberOfLines={1}>
                   {getDisplayName(rootUri)}
                 </Text>
+                <TouchableOpacity onPress={handleAddPress} hitSlop={10} style={styles.searchBtn}>
+                  <MaterialIcons name="add" size={22} color={isDark ? '#ccc' : '#444'} />
+                </TouchableOpacity>
                 <TouchableOpacity onPress={() => setShowSearch(true)} hitSlop={10} style={styles.searchBtn}>
                   <MaterialIcons name="search" size={20} color={isDark ? '#ccc' : '#444'} />
                 </TouchableOpacity>
@@ -257,6 +345,7 @@ export default function HomeScreen() {
                 <TouchableOpacity
                   style={[styles.fileItem, { borderBottomColor: isDark ? '#333' : '#e0e0e0' }]}
                   onPress={() => handleItemPress(item, filename)}
+                  onLongPress={() => handleLongPress(item, filename)}
                 >
                   <MaterialIcons name={icon as any} size={24} color={color} style={styles.icon} />
                   <Text style={[styles.fileText, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>{filename}</Text>
@@ -272,6 +361,20 @@ export default function HomeScreen() {
           />
         </View>
       )}
+      <PromptModal
+        visible={prompt !== null}
+        isDark={isDark}
+        title={
+          prompt?.type === 'newFile' ? 'New File'
+            : prompt?.type === 'newFolder' ? 'New Folder'
+            : 'Rename'
+        }
+        initialValue={prompt?.type === 'rename' ? prompt.name : ''}
+        placeholder={prompt?.type === 'newFolder' ? 'Folder name' : 'file-name.ext'}
+        confirmLabel={prompt?.type === 'rename' ? 'Rename' : 'Create'}
+        onCancel={() => setPrompt(null)}
+        onSubmit={handlePromptSubmit}
+      />
     </View>
   );
 }
