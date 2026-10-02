@@ -1,3 +1,5 @@
+import { CODE_EXTENSIONS } from './syntaxHighlight';
+
 export function getDisplayName(uri: string): string {
   try {
     const decoded = decodeURIComponent(uri);
@@ -40,7 +42,12 @@ export function getFileIcon(filename: string, isDark: boolean): { icon: string; 
       return { icon: 'text-snippet', color: '#9e9e9e' };
     case 'csv':
       return { icon: 'table-chart', color: '#4caf50' };
+    case 'json':
+      return { icon: 'data-object', color: '#f9a825' };
     default:
+      if (CODE_EXTENSIONS.has(getExtension(filename))) {
+        return { icon: 'code', color: '#7e57c2' };
+      }
       return { icon: 'insert-drive-file', color: isDark ? '#aaa' : '#666' };
   }
 }
