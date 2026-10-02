@@ -46,7 +46,7 @@ const Bubble = React.memo(function Bubble({ message, isDark }: { message: ChatMe
 });
 
 export function FileChatSheet({ visible, onClose, isDark, fileName, content, apiKey, model }: FileChatSheetProps) {
-  const { messages, isLoading, truncated, send } = useFileChat(fileName, content, apiKey, model);
+  const { messages, isLoading, truncated, rateLimit, send } = useFileChat(fileName, content, apiKey, model);
   const [input, setInput] = useState('');
   const inputRef = useRef<TextInput>(null);
   const listRef = useRef<FlatList>(null);
@@ -70,7 +70,7 @@ export function FileChatSheet({ visible, onClose, isDark, fileName, content, api
     <BottomSheet visible={visible} onClose={onClose} isDark={isDark} heightPercent={0.92}>
       <View style={styles.header}>
         <Text style={[styles.headerTitle, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>
-          Ask AI about {fileName}
+          Ask OpenerAi about {fileName}
         </Text>
         <TouchableOpacity onPress={onClose} hitSlop={10}>
           <MaterialIcons name="close" size={22} color={isDark ? '#ccc' : '#444'} />
@@ -132,6 +132,18 @@ export function FileChatSheet({ visible, onClose, isDark, fileName, content, api
               ) : null
             }
           />
+          {rateLimit?.remainingRequests !== undefined && (
+            <Text
+              style={[
+                styles.usageText,
+                { color: rateLimit.remainingRequests <= 5 ? '#d32f2f' : (isDark ? '#666' : '#999') },
+              ]}
+            >
+              Groq: {rateLimit.remainingRequests}
+              {rateLimit.limitRequests !== undefined ? `/${rateLimit.limitRequests}` : ''} requests left
+              {rateLimit.resetRequests ? ` · resets in ${rateLimit.resetRequests}` : ''}
+            </Text>
+          )}
           <View style={[styles.inputRow, { borderTopColor: isDark ? '#333' : '#e0e0e0' }]}>
             <TextInput
               ref={inputRef}
@@ -169,6 +181,7 @@ const styles = StyleSheet.create({
   bubble: { maxWidth: '85%', borderRadius: 12, paddingHorizontal: 12, paddingVertical: 8, marginBottom: 2 },
   errorBubble: { alignSelf: 'center', backgroundColor: '#ffe5e5' },
   errorText: { color: '#d32f2f', fontSize: 13 },
+  usageText: { fontSize: 11, paddingHorizontal: 16, paddingBottom: 4 },
   inputRow: { flexDirection: 'row', alignItems: 'flex-end', paddingHorizontal: 12, paddingVertical: 10, borderTopWidth: 1, gap: 8 },
   input: { flex: 1, fontSize: 14, maxHeight: 100, paddingVertical: 6 },
   sendButton: { padding: 6 },

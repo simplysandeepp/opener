@@ -41,7 +41,7 @@ export function useFolderRag(folderRoot: string | null, apiKey: string | null, m
         "Be concise by default - a few sentences is usually enough. Only give a longer, " +
         "detailed answer if the user explicitly asks for more detail or a full explanation.\n\n" + context;
 
-      const reply = await chat(
+      const { content: reply } = await chat(
         [
           { role: 'system', content: systemPrompt },
           { role: 'user', content: trimmed },

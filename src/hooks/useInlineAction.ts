@@ -19,7 +19,7 @@ export function useInlineAction() {
     setError(null);
     setResult(null);
     try {
-      const reply = await chat(
+      const { content: reply } = await chat(
         [
           {
             role: 'system',
