@@ -2,10 +2,12 @@ import { useCallback, useEffect, useState } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 import { collectBackupData, applyBackupData, type BackupData } from '../lib/backupData';
-import { findBackupFile, uploadBackup, downloadBackup } from '../lib/googleDrive';
+import { findOrCreateOpenerFolder, findBackupFile, uploadBackup, downloadBackup } from '../lib/googleDrive';
 
 const LAST_BACKUP_KEY = 'opener_drive_last_backup_at';
-const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
+// Lets the app create and use its own visible "Opener" folder in My Drive, without seeing the
+// rest of the user's files (narrower than the full `drive` scope).
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 
 GoogleSignin.configure({ scopes: [DRIVE_SCOPE] });
 
@@ -59,9 +61,10 @@ export function useGoogleDriveSync() {
     setIsBusy(true);
     try {
       const accessToken = await getAccessToken();
+      const folderId = await findOrCreateOpenerFolder(accessToken);
       const data = await collectBackupData();
-      const existingFileId = await findBackupFile(accessToken);
-      await uploadBackup(accessToken, data, existingFileId);
+      const existingFileId = await findBackupFile(accessToken, folderId);
+      await uploadBackup(accessToken, data, folderId, existingFileId);
       const now = Date.now();
       setLastBackupAt(now);
       await AsyncStorage.setItem(LAST_BACKUP_KEY, String(now));
@@ -75,7 +78,8 @@ export function useGoogleDriveSync() {
     setIsBusy(true);
     try {
       const accessToken = await getAccessToken();
-      const fileId = await findBackupFile(accessToken);
+      const folderId = await findOrCreateOpenerFolder(accessToken);
+      const fileId = await findBackupFile(accessToken, folderId);
       if (!fileId) return false;
       const backup = await downloadBackup<BackupData>(accessToken, fileId);
       await applyBackupData(backup);

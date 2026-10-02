@@ -1,4 +1,6 @@
 const BACKUP_FILENAME = 'opener-backup.json';
+const FOLDER_NAME = 'Opener';
+const FOLDER_MIME_TYPE = 'application/vnd.google-apps.folder';
 const FILES_URL = 'https://www.googleapis.com/drive/v3/files';
 const UPLOAD_URL = 'https://www.googleapis.com/upload/drive/v3/files';
 
@@ -14,18 +16,43 @@ async function driveFetch(url: string, accessToken: string, init?: RequestInit):
   return response;
 }
 
-/** Looks for the app's backup file in the hidden per-app "appDataFolder" (not visible in the user's regular Drive). */
-export async function findBackupFile(accessToken: string): Promise<string | null> {
-  const query = encodeURIComponent(`name='${BACKUP_FILENAME}'`);
-  const url = `${FILES_URL}?spaces=appDataFolder&q=${query}&fields=files(id)`;
-  const response = await driveFetch(url, accessToken);
+/**
+ * Finds the visible "Opener" folder in the user's My Drive, creating it if it doesn't exist yet.
+ * Uses the drive.file scope: the app can only see files/folders it creates itself (or the user
+ * explicitly opens with it), never the rest of the user's Drive.
+ */
+export async function findOrCreateOpenerFolder(accessToken: string): Promise<string> {
+  const query = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='${FOLDER_MIME_TYPE}' and trashed=false`);
+  const listResponse = await driveFetch(`${FILES_URL}?q=${query}&fields=files(id)`, accessToken);
+  const listJson = await listResponse.json();
+  const existingId = listJson.files?.[0]?.id;
+  if (existingId) return existingId;
+
+  const createResponse = await driveFetch(FILES_URL, accessToken, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: FOLDER_NAME, mimeType: FOLDER_MIME_TYPE }),
+  });
+  const createJson = await createResponse.json();
+  return createJson.id;
+}
+
+/** Looks for the backup file inside the "Opener" folder. */
+export async function findBackupFile(accessToken: string, folderId: string): Promise<string | null> {
+  const query = encodeURIComponent(`name='${BACKUP_FILENAME}' and '${folderId}' in parents and trashed=false`);
+  const response = await driveFetch(`${FILES_URL}?q=${query}&fields=files(id)`, accessToken);
   const json = await response.json();
   return json.files?.[0]?.id ?? null;
 }
 
-export async function uploadBackup(accessToken: string, data: unknown, existingFileId: string | null): Promise<void> {
+export async function uploadBackup(
+  accessToken: string,
+  data: unknown,
+  folderId: string,
+  existingFileId: string | null
+): Promise<void> {
   const boundary = `opener-backup-boundary-${Date.now()}`;
-  const metadata = existingFileId ? {} : { name: BACKUP_FILENAME, parents: ['appDataFolder'] };
+  const metadata = existingFileId ? {} : { name: BACKUP_FILENAME, parents: [folderId] };
   const body =
     `--${boundary}\r\n` +
     `Content-Type: application/json; charset=UTF-8\r\n\r\n` +

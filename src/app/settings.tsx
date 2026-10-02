@@ -273,9 +273,9 @@ export default function SettingsScreen() {
       <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666', marginTop: 20 }]}>BACKUP &amp; SYNC</Text>
       <View style={[styles.card, { backgroundColor: isDark ? '#17171a' : '#fff', borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]}>
         <Text style={[styles.notice, { color: isDark ? '#aaa' : '#666' }]}>
-          Back up your favorites, recents, and preferences to your own Google Drive (in a private
-          app-only folder, not visible among your regular files), and restore them on another
-          device. Your Groq API key is never included.
+          Back up your favorites, recents, and preferences to a folder named &ldquo;Opener&rdquo; in
+          your Google Drive, and restore them on another device. Opener can only see files it
+          creates itself - never the rest of your Drive. Your Groq API key is never included.
         </Text>
 
         {!signedIn ? (
