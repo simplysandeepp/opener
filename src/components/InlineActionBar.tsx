@@ -18,7 +18,7 @@ interface InlineActionBarProps {
 
 export function InlineActionBar({ isDark, disabled, onAction }: InlineActionBarProps) {
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#1e1e1e' : '#eaeaea', borderTopColor: isDark ? '#333' : '#ddd' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#17171a' : '#eaeaea', borderTopColor: isDark ? '#333' : '#ddd' }]}>
       {ACTIONS.map((action) => (
         <TouchableOpacity
           key={action.kind}

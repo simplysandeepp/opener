@@ -21,7 +21,7 @@ export const markdownHandler: FileHandler = {
           heading3: { color: isDark ? '#ffffff' : '#000000' },
           link: { color: '#007AFF' },
           fence: {
-            backgroundColor: isDark ? '#1e1e1e' : '#f0f0f0',
+            backgroundColor: isDark ? '#17171a' : '#f0f0f0',
             color: isDark ? '#d4d4d4' : '#333333',
             fontFamily: 'monospace',
             padding: 10,
@@ -31,7 +31,7 @@ export const markdownHandler: FileHandler = {
             marginVertical: 10,
           },
           code_block: {
-            backgroundColor: isDark ? '#1e1e1e' : '#f0f0f0',
+            backgroundColor: isDark ? '#17171a' : '#f0f0f0',
             color: isDark ? '#d4d4d4' : '#333333',
             fontFamily: 'monospace',
             padding: 10,

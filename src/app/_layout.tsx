@@ -12,7 +12,7 @@ function RootNavigator() {
     <Stack
       screenOptions={{
         headerStyle: {
-          backgroundColor: isDark ? '#121212' : '#ffffff',
+          backgroundColor: isDark ? '#0a0a0c' : '#ffffff',
         },
         headerTintColor: isDark ? '#ffffff' : '#000000',
         headerTitleStyle: {

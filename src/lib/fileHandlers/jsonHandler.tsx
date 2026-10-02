@@ -81,7 +81,7 @@ function JsonTreeView({ content, isDark }: { content: string; isDark: boolean })
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: isDark ? '#1e1e1e' : '#fafafa' }]} contentContainerStyle={{ padding: 15 }}>
+    <ScrollView style={[styles.container, { backgroundColor: isDark ? '#17171a' : '#fafafa' }]} contentContainerStyle={{ padding: 15 }}>
       <JsonNode label={null} value={parsed} isDark={isDark} depth={0} />
     </ScrollView>
   );

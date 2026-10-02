@@ -49,7 +49,9 @@ export function BottomSheet({ visible, onClose, isDark, heightPercent = 0.75, ch
             styles.sheet,
             {
               height: sheetHeight,
-              backgroundColor: isDark ? '#1e1e1e' : '#fff',
+              backgroundColor: isDark ? '#17171a' : '#fff',
+              borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'transparent',
+              borderWidth: isDark ? 1 : 0,
               transform: [{ translateY }],
             },
           ]}

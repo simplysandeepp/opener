@@ -37,7 +37,7 @@ export default function HomeScreen() {
     tabsRef.current = tabs;
   });
 
-  const { files, refresh: refreshDirectory } = useDirectory(rootUri);
+  const { files, error: directoryError, refresh: refreshDirectory } = useDirectory(rootUri);
   const { recents, addRecent } = useRecents();
   const { favorites, isFavorite, toggleFavorite } = useFavorites();
   const {
@@ -136,6 +136,7 @@ export default function HomeScreen() {
       }
     } catch (e) {
       console.warn('Failed to select directory', e);
+      Alert.alert('Could not open folder picker', 'Something went wrong requesting folder access. Please try again.');
     }
   };
 
@@ -248,7 +249,7 @@ export default function HomeScreen() {
   const displayedItems = isSearchingQuery ? (recursiveResults ?? localResults).map((r) => r.uri) : files;
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f5f5f5' }]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0a0a0c' : '#f5f5f5' }]}>
       <Stack.Screen
         options={{
           headerTitle: () => (
@@ -284,7 +285,7 @@ export default function HomeScreen() {
         </View>
       ) : (
         <View style={styles.listContainer}>
-          <View style={[styles.headerRow, { backgroundColor: isDark ? '#1e1e1e' : '#eaeaea' }]}>
+          <View style={[styles.headerRow, { backgroundColor: isDark ? '#17171a' : '#eaeaea', borderBottomColor: isDark ? 'rgba(255,255,255,0.06)' : 'transparent', borderBottomWidth: isDark ? 1 : 0 }]}>
             {showSearch ? (
               <>
                 <MaterialIcons name="search" size={20} color={isDark ? '#ccc' : '#444'} />
@@ -327,6 +328,15 @@ export default function HomeScreen() {
               </>
             )}
           </View>
+          {directoryError && !isSearchingQuery && (
+            <View style={styles.errorBanner}>
+              <MaterialIcons name="error-outline" size={16} color="#d32f2f" />
+              <Text style={styles.errorBannerText}>{directoryError}</Text>
+              <TouchableOpacity onPress={refreshDirectory}>
+                <Text style={styles.retryText}>Retry</Text>
+              </TouchableOpacity>
+            </View>
+          )}
           {isSearchingQuery && !isSearching && recursiveResults === null && (
             <TouchableOpacity style={styles.searchEverywhereBtn} onPress={searchEverywhere}>
               <MaterialIcons name="travel-explore" size={16} color="#007AFF" />
@@ -425,4 +435,7 @@ const styles = StyleSheet.create({
   searchEverywhereBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 10 },
   searchEverywhereText: { color: '#007AFF', fontSize: 13, marginLeft: 6 },
   resultCount: { paddingHorizontal: 15, paddingBottom: 8, fontSize: 12 },
+  errorBanner: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 10, backgroundColor: 'rgba(211,47,47,0.1)', gap: 8 },
+  errorBannerText: { flex: 1, color: '#d32f2f', fontSize: 13 },
+  retryText: { color: '#007AFF', fontSize: 13, fontWeight: '600' },
 });

@@ -208,7 +208,7 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
   };
 
   return (
-    <View style={[styles.container, { backgroundColor: isDark ? '#121212' : '#ffffff' }, !isActive && styles.hidden]}>
+    <View style={[styles.container, { backgroundColor: isDark ? '#0a0a0c' : '#ffffff' }, !isActive && styles.hidden]}>
       {renderContent()}
       {settingsLoaded && aiEnabled && !loading && !error && content !== null && !isEditing && (
         <TouchableOpacity style={styles.fab} onPress={() => setChatVisible(true)}>

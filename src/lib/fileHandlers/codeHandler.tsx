@@ -8,7 +8,7 @@ function CodeView({ content, isDark }: { content: string; isDark: boolean }) {
 
   return (
     <FlatList
-      style={[styles.container, { backgroundColor: isDark ? '#1e1e1e' : '#fafafa' }]}
+      style={[styles.container, { backgroundColor: isDark ? '#17171a' : '#fafafa' }]}
       data={lines}
       keyExtractor={(_, index) => String(index)}
       renderItem={({ item: line, index }) => (
