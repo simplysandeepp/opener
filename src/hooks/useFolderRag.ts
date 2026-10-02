@@ -37,7 +37,9 @@ export function useFolderRag(folderRoot: string | null, apiKey: string | null, m
       const context = matches.map((m, i) => `[${i + 1}] ${m.name}\n${m.content}`).join('\n\n---\n\n');
       const systemPrompt =
         "Answer the question using ONLY the excerpts below, each labeled with its source file. " +
-        "Cite which file(s) you used. If the excerpts don't contain the answer, say so.\n\n" + context;
+        "Cite which file(s) you used. If the excerpts don't contain the answer, say so. " +
+        "Be concise by default - a few sentences is usually enough. Only give a longer, " +
+        "detailed answer if the user explicitly asks for more detail or a full explanation.\n\n" + context;
 
       const reply = await chat(
         [
