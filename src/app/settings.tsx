@@ -5,6 +5,7 @@ import { useGroqSettings } from '../hooks/useGroqSettings';
 import { listModels, GroqError } from '../lib/llm/groq';
 import { SelectModal } from '../components/SelectModal';
 import { useTheme, type ThemePreference } from '../contexts/ThemeContext';
+import { useAppLock } from '../contexts/AppLockContext';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -20,6 +21,14 @@ function errorMessage(e: unknown): string {
 export default function SettingsScreen() {
   const { isDark, preference, setPreference } = useTheme();
   const { loaded, apiKey, setApiKey, model, setModel, aiEnabled, setAiEnabled } = useGroqSettings();
+  const { enabled: appLockEnabled, setEnabled: setAppLockEnabled } = useAppLock();
+
+  const handleToggleAppLock = async (next: boolean) => {
+    const applied = await setAppLockEnabled(next);
+    if (!applied) {
+      Alert.alert('Not available', 'Set up a fingerprint, face unlock, or screen lock in your device settings first.');
+    }
+  };
 
   const [keyDraft, setKeyDraft] = useState('');
   const [testing, setTesting] = useState(false);
@@ -147,6 +156,17 @@ export default function SettingsScreen() {
           <Text style={{ color: isDark ? '#fff' : '#000' }}>{model}</Text>
           {loadingModels ? <ActivityIndicator size="small" color="#007AFF" /> : <Text style={styles.changeText}>Change</Text>}
         </TouchableOpacity>
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666', marginTop: 20 }]}>SECURITY</Text>
+      <View style={[styles.card, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
+        <View style={styles.row}>
+          <Text style={[styles.label, { color: isDark ? '#fff' : '#000' }]}>Require unlock to open app</Text>
+          <Switch value={appLockEnabled} onValueChange={handleToggleAppLock} />
+        </View>
+        <Text style={[styles.hint, { color: isDark ? '#777' : '#999' }]}>
+          Uses your device&rsquo;s fingerprint, face unlock, or screen lock.
+        </Text>
       </View>
 
       <SelectModal
