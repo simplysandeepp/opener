@@ -6,6 +6,7 @@ import { listModels, GroqError } from '../lib/llm/groq';
 import { SelectModal } from '../components/SelectModal';
 import { useTheme, type ThemePreference } from '../contexts/ThemeContext';
 import { useAppLock } from '../contexts/AppLockContext';
+import { useGoogleDriveSync } from '../hooks/useGoogleDriveSync';
 
 const THEME_OPTIONS: { value: ThemePreference; label: string }[] = [
   { value: 'system', label: 'System' },
@@ -22,12 +23,55 @@ export default function SettingsScreen() {
   const { isDark, preference, setPreference } = useTheme();
   const { loaded, apiKey, setApiKey, model, setModel, aiEnabled, setAiEnabled } = useGroqSettings();
   const { enabled: appLockEnabled, setEnabled: setAppLockEnabled } = useAppLock();
+  const { signedIn, userEmail, isBusy, lastBackupAt, connect, disconnect, backupNow, restoreNow } = useGoogleDriveSync();
 
   const handleToggleAppLock = async (next: boolean) => {
     const applied = await setAppLockEnabled(next);
     if (!applied) {
       Alert.alert('Not available', 'Set up a fingerprint, face unlock, or screen lock in your device settings first.');
     }
+  };
+
+  const handleConnectDrive = async () => {
+    try {
+      await connect();
+    } catch (e: any) {
+      Alert.alert('Could not connect', e.message || 'Something went wrong.');
+    }
+  };
+
+  const handleBackup = async () => {
+    try {
+      await backupNow();
+      Alert.alert('Backed up', 'Your favorites, recents, and preferences were saved to Google Drive.');
+    } catch (e: any) {
+      Alert.alert('Backup failed', e.message || 'Something went wrong.');
+    }
+  };
+
+  const handleRestore = () => {
+    Alert.alert(
+      'Restore from Drive?',
+      'This replaces your current favorites, recents, and preferences on this device with the ones from your last backup. A restart is needed afterwards for every screen to pick up the change.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Restore',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const found = await restoreNow();
+              Alert.alert(
+                found ? 'Restored' : 'No backup found',
+                found ? 'Restart the app for the restored data to appear everywhere.' : 'Back up from another device first.'
+              );
+            } catch (e: any) {
+              Alert.alert('Restore failed', e.message || 'Something went wrong.');
+            }
+          },
+        },
+      ]
+    );
   };
 
   const [keyDraft, setKeyDraft] = useState('');
@@ -167,6 +211,41 @@ export default function SettingsScreen() {
         <Text style={[styles.hint, { color: isDark ? '#777' : '#999' }]}>
           Uses your device&rsquo;s fingerprint, face unlock, or screen lock.
         </Text>
+      </View>
+
+      <Text style={[styles.sectionTitle, { color: isDark ? '#aaa' : '#666', marginTop: 20 }]}>BACKUP &amp; SYNC</Text>
+      <View style={[styles.card, { backgroundColor: isDark ? '#1e1e1e' : '#fff' }]}>
+        <Text style={[styles.notice, { color: isDark ? '#aaa' : '#666' }]}>
+          Back up your favorites, recents, and preferences to your own Google Drive (in a private
+          app-only folder, not visible among your regular files), and restore them on another
+          device. Your Groq API key is never included.
+        </Text>
+
+        {!signedIn ? (
+          <TouchableOpacity style={styles.primaryButton} onPress={handleConnectDrive} disabled={isBusy}>
+            {isBusy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Connect Google Drive</Text>}
+          </TouchableOpacity>
+        ) : (
+          <>
+            <Text style={[styles.label, { color: isDark ? '#fff' : '#000' }]}>{userEmail}</Text>
+            {lastBackupAt && (
+              <Text style={[styles.hint, { color: isDark ? '#777' : '#999' }]}>
+                Last backed up {new Date(lastBackupAt).toLocaleString()}
+              </Text>
+            )}
+            <View style={styles.buttonRow}>
+              <TouchableOpacity style={styles.secondaryButton} onPress={handleRestore} disabled={isBusy}>
+                <Text style={styles.secondaryButtonText}>Restore</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.primaryButton} onPress={handleBackup} disabled={isBusy}>
+                {isBusy ? <ActivityIndicator size="small" color="#fff" /> : <Text style={styles.primaryButtonText}>Back up now</Text>}
+              </TouchableOpacity>
+            </View>
+            <TouchableOpacity onPress={disconnect} disabled={isBusy}>
+              <Text style={styles.removeKeyText}>Disconnect</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       <SelectModal

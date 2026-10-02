@@ -71,7 +71,8 @@
           "faceIDPermission": "Allow Opener to use Face ID to unlock the app."
         }
       ],
-      "expo-sqlite"
+      "expo-sqlite",
+      "@react-native-google-signin/google-signin"
     ],
     "extra": {
       "router": {},
