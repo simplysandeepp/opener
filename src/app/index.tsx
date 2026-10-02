@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, FlatList, useColorScheme, BackHandler } from 'react-native';
+import { ActivityIndicator, View, Text, StyleSheet, TouchableOpacity, FlatList, useColorScheme, BackHandler, TextInput } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, Stack } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -7,18 +7,30 @@ import { StorageProvider } from '../lib/storage/StorageProvider';
 import { useDirectory } from '../hooks/useDirectory';
 import { useRecents, type RecentFile } from '../hooks/useRecents';
 import { useFavorites, type FavoriteEntry } from '../hooks/useFavorites';
+import { useSearch } from '../hooks/useSearch';
 import { getDisplayName, getFileIcon, isLikelyFile } from '../lib/fileKind';
 import { QuickAccessSection } from '../components/QuickAccessSection';
 
 export default function HomeScreen() {
   const [rootUri, setRootUri] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
+  const [showSearch, setShowSearch] = useState(false);
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
   const { files } = useDirectory(rootUri);
   const { recents, addRecent } = useRecents();
   const { favorites, isFavorite, toggleFavorite } = useFavorites();
+  const {
+    query,
+    setQuery,
+    localResults,
+    recursiveResults,
+    isSearching,
+    searchEverywhere,
+    cancelSearch,
+    resetSearch,
+  } = useSearch(rootUri, files);
 
   const openFile = useCallback(async (uri: string, name: string) => {
     addRecent(uri, name);
@@ -80,8 +92,17 @@ export default function HomeScreen() {
     }
   }, [history]);
 
+  const closeSearch = useCallback(() => {
+    resetSearch();
+    setShowSearch(false);
+  }, [resetSearch]);
+
   useEffect(() => {
     const onBackPress = () => {
+      if (showSearch) {
+        closeSearch();
+        return true;
+      }
       if (history.length > 0) {
         goBack();
         return true; // Prevent default back (which closes the app)
@@ -91,7 +112,7 @@ export default function HomeScreen() {
 
     const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
     return () => backHandler.remove();
-  }, [history, goBack]);
+  }, [history, goBack, showSearch, closeSearch]);
 
   const selectDirectory = async () => {
     try {
@@ -111,6 +132,7 @@ export default function HomeScreen() {
       const isFolder = await StorageProvider.isDirectory(itemUri);
       if (!isFolder) throw new Error('Not a directory');
 
+      closeSearch();
       const newHistory = [...history, rootUri!];
       setHistory(newHistory);
       setRootUri(itemUri);
@@ -119,6 +141,7 @@ export default function HomeScreen() {
       await AsyncStorage.setItem('opener_current_folder', itemUri);
       await AsyncStorage.setItem('last_opened_screen', 'index');
     } catch {
+      closeSearch();
       openFile(itemUri, filename);
     }
   };
@@ -131,6 +154,9 @@ export default function HomeScreen() {
   const handleOpenRecent = (entry: RecentFile) => {
     openFile(entry.uri, entry.name);
   };
+
+  const isSearchingQuery = query.length > 0;
+  const displayedItems = isSearchingQuery ? (recursiveResults ?? localResults).map((r) => r.uri) : files;
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f5f5f5' }]}>
@@ -165,20 +191,62 @@ export default function HomeScreen() {
       ) : (
         <View style={styles.listContainer}>
           <View style={[styles.headerRow, { backgroundColor: isDark ? '#1e1e1e' : '#eaeaea' }]}>
-            {history.length > 0 && (
-              <TouchableOpacity onPress={goBack} style={styles.backBtn}>
-                <MaterialIcons name="arrow-back" size={20} color={isDark ? '#ccc' : '#444'} />
-              </TouchableOpacity>
+            {showSearch ? (
+              <>
+                <MaterialIcons name="search" size={20} color={isDark ? '#ccc' : '#444'} />
+                <TextInput
+                  autoFocus
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Search this folder..."
+                  placeholderTextColor={isDark ? '#777' : '#999'}
+                  style={[styles.searchInput, { color: isDark ? '#fff' : '#000' }]}
+                />
+                <TouchableOpacity onPress={closeSearch} hitSlop={10}>
+                  <MaterialIcons name="close" size={20} color={isDark ? '#ccc' : '#444'} />
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                {history.length > 0 && (
+                  <TouchableOpacity onPress={goBack} style={styles.backBtn}>
+                    <MaterialIcons name="arrow-back" size={20} color={isDark ? '#ccc' : '#444'} />
+                  </TouchableOpacity>
+                )}
+                <Text style={[styles.pathText, { color: isDark ? '#ccc' : '#444', marginLeft: history.length > 0 ? 10 : 0 }]} numberOfLines={1}>
+                  {getDisplayName(rootUri)}
+                </Text>
+                <TouchableOpacity onPress={() => setShowSearch(true)} hitSlop={10} style={styles.searchBtn}>
+                  <MaterialIcons name="search" size={20} color={isDark ? '#ccc' : '#444'} />
+                </TouchableOpacity>
+                <TouchableOpacity onPress={selectDirectory}>
+                  <Text style={styles.changeText}>Change Root</Text>
+                </TouchableOpacity>
+              </>
             )}
-            <Text style={[styles.pathText, { color: isDark ? '#ccc' : '#444', marginLeft: history.length > 0 ? 10 : 0 }]} numberOfLines={1}>
-              {getDisplayName(rootUri)}
-            </Text>
-            <TouchableOpacity onPress={selectDirectory}>
-              <Text style={styles.changeText}>Change Root</Text>
-            </TouchableOpacity>
           </View>
+          {isSearchingQuery && !isSearching && recursiveResults === null && (
+            <TouchableOpacity style={styles.searchEverywhereBtn} onPress={searchEverywhere}>
+              <MaterialIcons name="travel-explore" size={16} color="#007AFF" />
+              <Text style={styles.searchEverywhereText}>Search in all subfolders</Text>
+            </TouchableOpacity>
+          )}
+          {isSearchingQuery && isSearching && (
+            <View style={styles.searchEverywhereBtn}>
+              <ActivityIndicator size="small" color="#007AFF" />
+              <Text style={[styles.searchEverywhereText, { marginLeft: 8 }]}>Searching subfolders...</Text>
+              <TouchableOpacity onPress={cancelSearch} style={{ marginLeft: 12 }}>
+                <Text style={{ color: '#ff3b30', fontSize: 13 }}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+          {isSearchingQuery && recursiveResults !== null && (
+            <Text style={[styles.resultCount, { color: isDark ? '#aaa' : '#666' }]}>
+              {recursiveResults.length} result{recursiveResults.length === 1 ? '' : 's'} found
+            </Text>
+          )}
           <FlatList
-            data={files}
+            data={displayedItems}
             keyExtractor={(item) => item}
             renderItem={({ item }) => {
               const filename = getDisplayName(item);
@@ -219,8 +287,13 @@ const styles = StyleSheet.create({
   headerRow: { flexDirection: 'row', alignItems: 'center', padding: 15 },
   backBtn: { padding: 4 },
   pathText: { flex: 1, fontSize: 14, fontWeight: '600', marginRight: 10 },
+  searchBtn: { marginRight: 15 },
+  searchInput: { flex: 1, fontSize: 14, marginHorizontal: 10, padding: 0 },
   changeText: { color: '#007AFF', fontSize: 14, fontWeight: '600' },
   fileItem: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1 },
   icon: { marginRight: 15 },
   fileText: { flex: 1, fontSize: 16, marginRight: 10 },
+  searchEverywhereBtn: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 15, paddingVertical: 10 },
+  searchEverywhereText: { color: '#007AFF', fontSize: 13, marginLeft: 6 },
+  resultCount: { paddingHorizontal: 15, paddingBottom: 8, fontSize: 12 },
 });

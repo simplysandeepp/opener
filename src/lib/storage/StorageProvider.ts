@@ -16,11 +16,15 @@ export const StorageProvider = {
 
   /** SAF has no "is this a file" check, so we probe by trying to list it as a directory. */
   async isDirectory(uri: string): Promise<boolean> {
+    return (await this.listDirectoryOrNull(uri)) !== null;
+  },
+
+  /** Like listDirectory, but returns null instead of throwing when `uri` is a file, not a folder. */
+  async listDirectoryOrNull(uri: string): Promise<string[] | null> {
     try {
-      await StorageAccessFramework.readDirectoryAsync(uri);
-      return true;
+      return await StorageAccessFramework.readDirectoryAsync(uri);
     } catch {
-      return false;
+      return null;
     }
   },
 
