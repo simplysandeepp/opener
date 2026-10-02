@@ -1,8 +1,14 @@
 const BASE_URL = 'https://api.groq.com/openai/v1';
 const DEFAULT_TIMEOUT_MS = 15000;
 
-/** Matches Groq's own quickstart default; the model picker lets users switch to any model from listModels(). */
-export const DEFAULT_GROQ_MODEL = 'llama-3.3-70b-versatile';
+/**
+ * Groq's catalog changes often - llama-3.3-70b-versatile (this app's original default) was
+ * removed from the API entirely (confirmed live: GET /models no longer lists it, and chat
+ * completions against it now 404 with "model_not_found"). openai/gpt-oss-120b is the strongest
+ * current general-purpose chat model, verified against a live listModels()/chat() call.
+ * The model picker lets users switch to any model from listModels() regardless.
+ */
+export const DEFAULT_GROQ_MODEL = 'openai/gpt-oss-120b';
 
 export type GroqErrorKind = 'unauthorized' | 'rate_limited' | 'network' | 'timeout' | 'unknown';
 
@@ -53,7 +59,14 @@ async function groqFetch(path: string, apiKey: string, init: RequestInit, extern
       const body = await response.text().catch(() => '');
       if (response.status === 401) throw new GroqError('unauthorized', 'Invalid Groq API key.');
       if (response.status === 429) throw new GroqError('rate_limited', 'Groq rate limit reached. Try again shortly.');
-      throw new GroqError('unknown', `Groq API error (${response.status}): ${body || response.statusText}`);
+
+      let apiMessage: string | undefined;
+      try {
+        apiMessage = JSON.parse(body)?.error?.message;
+      } catch {
+        // body wasn't JSON; fall through to the raw-text message below
+      }
+      throw new GroqError('unknown', apiMessage || `Groq API error (${response.status}): ${body || response.statusText}`);
     }
 
     return response;

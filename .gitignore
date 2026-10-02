@@ -31,7 +31,11 @@ yarn-error.*
 *.pem
 
 # local env files
+.env
 .env*.local
+
+# downloaded OAuth credential files (e.g. from Google Cloud Console)
+client_secret*.json
 
 # typescript
 *.tsbuildinfo
