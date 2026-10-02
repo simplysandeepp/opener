@@ -52,4 +52,4 @@ If you connect it:
 
 ## Contact
 
-For privacy questions about Opener, contact: sandeepprajapati1202@gmail.com
+For privacy questions about Opener, please [open an issue on GitHub](https://github.com/simplysandeepp/opener/issues).
