@@ -1,11 +1,13 @@
 import React from 'react';
 import { FlatList, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { parseCSV } from '../csv';
-import type { FileHandler } from './types';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
+import type { FileHandler, FileHandlerProps } from './types';
 
 const CELL_WIDTH = 140;
 
-function CsvTable({ content, isDark }: { content: string; isDark: boolean }) {
+function CsvTable({ content, isDark, onScrollDirectionChange }: FileHandlerProps) {
+  const handleScroll = useScrollDirection((direction) => onScrollDirectionChange?.(direction));
   const rows = parseCSV(content);
   if (rows.length === 0) {
     return (
@@ -57,6 +59,8 @@ function CsvTable({ content, isDark }: { content: string; isDark: boolean }) {
           data={body}
           keyExtractor={(_, index) => String(index)}
           renderItem={({ item, index }) => renderRow(item, index)}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
         />
       </View>
     </ScrollView>
@@ -66,7 +70,7 @@ function CsvTable({ content, isDark }: { content: string; isDark: boolean }) {
 export const csvHandler: FileHandler = {
   id: 'csv',
   canOpen: (filename) => filename.split('.').pop()?.toLowerCase() === 'csv',
-  render: ({ content, isDark }) => <CsvTable content={content} isDark={isDark} />,
+  render: (props) => <CsvTable {...props} />,
 };
 
 const styles = StyleSheet.create({

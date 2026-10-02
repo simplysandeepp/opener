@@ -46,6 +46,7 @@ export default function ViewerScreen() {
       <Stack.Screen
         options={{
           title: headerState?.title ?? 'File Viewer',
+          headerShown: !headerState?.hidden,
           headerRight: headerState ? () => (
             <TouchableOpacity onPress={headerState.onEditOrSave} disabled={headerState.isSaving} style={{ marginRight: 15 }}>
               <Text style={{ color: '#007AFF', fontSize: 16, fontWeight: 'bold' }}>
@@ -60,7 +61,7 @@ export default function ViewerScreen() {
           ) : undefined,
         }}
       />
-      <TabBar isDark={isDark} />
+      {!headerState?.hidden && <TabBar isDark={isDark} />}
       <View style={styles.content}>
         {tabs.map((tab) => (
           <FileTabView

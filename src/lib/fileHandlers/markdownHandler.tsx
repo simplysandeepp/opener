@@ -1,18 +1,18 @@
 import React from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import Markdown from 'react-native-markdown-display';
-import type { FileHandler } from './types';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
+import type { FileHandler, FileHandlerProps } from './types';
 
-export const markdownHandler: FileHandler = {
-  id: 'markdown',
-  canOpen: (filename, content) => {
-    const ext = filename.split('.').pop()?.toLowerCase();
-    if (ext === 'md' || ext === 'markdown') return true;
-    const trimmed = content.trim();
-    return trimmed.startsWith('# ') || /^#{1,6} /m.test(trimmed);
-  },
-  render: ({ content, isDark }) => (
-    <ScrollView style={styles.scrollContainer} contentContainerStyle={styles.scrollContent}>
+function MarkdownView({ content, isDark, onScrollDirectionChange }: FileHandlerProps) {
+  const handleScroll = useScrollDirection((direction) => onScrollDirectionChange?.(direction));
+  return (
+    <ScrollView
+      style={styles.scrollContainer}
+      contentContainerStyle={styles.scrollContent}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+    >
       <Markdown
         style={{
           body: { color: isDark ? '#ffffff' : '#000000', fontSize: 16 },
@@ -50,7 +50,18 @@ export const markdownHandler: FileHandler = {
         {content}
       </Markdown>
     </ScrollView>
-  ),
+  );
+}
+
+export const markdownHandler: FileHandler = {
+  id: 'markdown',
+  canOpen: (filename, content) => {
+    const ext = filename.split('.').pop()?.toLowerCase();
+    if (ext === 'md' || ext === 'markdown') return true;
+    const trimmed = content.trim();
+    return trimmed.startsWith('# ') || /^#{1,6} /m.test(trimmed);
+  },
+  render: (props) => <MarkdownView {...props} />,
 };
 
 const styles = StyleSheet.create({

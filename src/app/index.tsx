@@ -314,11 +314,6 @@ export default function HomeScreen() {
                 <TouchableOpacity onPress={handleAddPress} hitSlop={10} style={styles.searchBtn}>
                   <MaterialIcons name="add" size={22} color={isDark ? '#ccc' : '#444'} />
                 </TouchableOpacity>
-                {aiEnabled && (
-                  <TouchableOpacity onPress={() => setRagVisible(true)} hitSlop={10} style={styles.searchBtn}>
-                    <MaterialIcons name="auto-awesome" size={19} color={isDark ? '#ccc' : '#444'} />
-                  </TouchableOpacity>
-                )}
                 <TouchableOpacity onPress={() => setShowSearch(true)} hitSlop={10} style={styles.searchBtn}>
                   <MaterialIcons name="search" size={20} color={isDark ? '#ccc' : '#444'} />
                 </TouchableOpacity>
@@ -383,6 +378,11 @@ export default function HomeScreen() {
               );
             }}
           />
+          {aiEnabled && (
+            <TouchableOpacity style={styles.fab} onPress={() => setRagVisible(true)}>
+              <MaterialIcons name="auto-awesome" size={24} color="#fff" />
+            </TouchableOpacity>
+          )}
         </View>
       )}
       <PromptModal
@@ -423,6 +423,22 @@ const styles = StyleSheet.create({
   button: { backgroundColor: '#007AFF', paddingHorizontal: 20, paddingVertical: 12, borderRadius: 8 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
   listContainer: { flex: 1 },
+  fab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#007AFF',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.3,
+    shadowRadius: 3,
+  },
   headerRow: { flexDirection: 'row', alignItems: 'center', padding: 15 },
   backBtn: { padding: 4 },
   pathText: { flex: 1, fontSize: 14, fontWeight: '600', marginRight: 10 },

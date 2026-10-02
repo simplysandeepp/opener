@@ -23,6 +23,7 @@ export interface TabHeaderState {
   title: string;
   isEditing: boolean;
   isSaving: boolean;
+  hidden: boolean;
   onEditOrSave: () => void;
   onCancel: () => void;
 }
@@ -45,6 +46,7 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
   const [languagePromptVisible, setLanguagePromptVisible] = useState(false);
   const [diffVisible, setDiffVisible] = useState(false);
   const [activeActionKind, setActiveActionKind] = useState<InlineActionKind>('rewrite');
+  const [headerHidden, setHeaderHidden] = useState(false);
   const { isDark } = useTheme();
   const { loaded: settingsLoaded, apiKey, model, aiEnabled } = useGroqSettings();
   const inlineAction = useInlineAction();
@@ -65,8 +67,19 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
       setChatVisible(false);
       setDiffVisible(false);
       setLanguagePromptVisible(false);
+    } else {
+      setHeaderHidden(false); // always land on a tab with its header visible
     }
   }, [isActive]);
+
+  // Editing always needs the header's Save/Cancel controls visible.
+  useEffect(() => {
+    if (isEditing) setHeaderHidden(false);
+  }, [isEditing]);
+
+  const handleScrollDirectionChange = useCallback((direction: 'up' | 'down') => {
+    setHeaderHidden(direction === 'down');
+  }, []);
 
   const hasUnsavedChanges = isEditing && editedContent !== content;
 
@@ -105,10 +118,11 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
       title: name || 'File Viewer',
       isEditing,
       isSaving,
+      hidden: headerHidden,
       onEditOrSave: () => (isEditing ? saveFileContent() : setIsEditing(true)),
       onCancel: cancelEditing,
     });
-  }, [isActive, name, isEditing, isSaving, onHeaderChange, saveFileContent, cancelEditing]);
+  }, [isActive, name, isEditing, isSaving, headerHidden, onHeaderChange, saveFileContent, cancelEditing]);
 
   const runInlineAction = (instruction: string, selectedText: string, start: number, end: number) => {
     setPendingSelection({ start, end, text: selectedText });
@@ -204,13 +218,13 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
     }
 
     const handler = getFileHandler(name, content);
-    return handler.render({ content, isDark });
+    return handler.render({ content, isDark, onScrollDirectionChange: handleScrollDirectionChange });
   };
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#0a0a0c' : '#ffffff' }, !isActive && styles.hidden]}>
       {renderContent()}
-      {settingsLoaded && aiEnabled && !loading && !error && content !== null && !isEditing && (
+      {settingsLoaded && aiEnabled && !loading && !error && content !== null && !isEditing && !headerHidden && (
         <TouchableOpacity style={styles.fab} onPress={() => setChatVisible(true)}>
           <MaterialIcons name="chat" size={24} color="#fff" />
         </TouchableOpacity>
