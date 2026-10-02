@@ -19,17 +19,23 @@ const SCREEN_HEIGHT = Dimensions.get('window').height;
 export function BottomSheet({ visible, onClose, isDark, heightPercent = 0.75, children }: BottomSheetProps) {
   const sheetHeight = SCREEN_HEIGHT * heightPercent;
   const [translateY] = useState(() => new Animated.Value(sheetHeight));
+  // Keeps the Modal mounted through the close animation - Modal's own `visible` prop yanks it
+  // away instantly, which would cut the slide-down animation off before it gets to play.
+  const [isMounted, setIsMounted] = useState(visible);
 
   useEffect(() => {
-    Animated.timing(translateY, {
-      toValue: visible ? 0 : sheetHeight,
-      duration: 250,
-      useNativeDriver: true,
-    }).start();
+    if (visible) {
+      setIsMounted(true);
+      Animated.timing(translateY, { toValue: 0, duration: 220, useNativeDriver: true }).start();
+    } else {
+      Animated.timing(translateY, { toValue: sheetHeight, duration: 200, useNativeDriver: true }).start(({ finished }) => {
+        if (finished) setIsMounted(false);
+      });
+    }
   }, [visible, sheetHeight, translateY]);
 
   return (
-    <Modal visible={visible} transparent animationType="none" onRequestClose={onClose}>
+    <Modal visible={isMounted} transparent animationType="none" onRequestClose={onClose}>
       <TouchableWithoutFeedback onPress={onClose}>
         <View style={styles.backdrop} />
       </TouchableWithoutFeedback>

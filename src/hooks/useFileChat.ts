@@ -29,7 +29,9 @@ export function useFileChat(fileName: string, fileContent: string, apiKey: strin
     try {
       const systemPrompt =
         `You are helping the user understand and edit a file named "${fileName}". ` +
-        `Answer using only the content below; say so if the answer isn't in it.` +
+        `Answer using only the content below; say so if the answer isn't in it. ` +
+        `Be concise by default - a few sentences is usually enough. Only give a longer, ` +
+        `detailed answer if the user explicitly asks for more detail or a full explanation.` +
         (truncated ? ' The content was truncated to fit the context window.' : '') +
         `\n\n---\n${contextContent}\n---`;
 

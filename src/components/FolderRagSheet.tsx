@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpac
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BottomSheet } from './BottomSheet';
+import { ChatMarkdown } from './ChatMarkdown';
 import { useFolderIndex } from '../hooks/useFolderIndex';
 import { useFolderRag, type FolderRagSource } from '../hooks/useFolderRag';
 
@@ -111,7 +112,7 @@ export function FolderRagSheet({ visible, onClose, isDark, folderUri, folderName
             }
             renderItem={({ item }) => (
               <View>
-                <Text style={{ color: isDark ? '#fff' : '#000', fontSize: 14, lineHeight: 20 }}>{item.answer}</Text>
+                <ChatMarkdown content={item.answer} color={isDark ? '#fff' : '#000'} isDark={isDark} />
                 {item.sources.length > 0 && (
                   <View style={styles.sources}>
                     <Text style={[styles.sourcesLabel, { color: isDark ? '#aaa' : '#666' }]}>Sources</Text>

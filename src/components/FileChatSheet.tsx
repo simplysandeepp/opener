@@ -3,6 +3,7 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, TextInput, TouchableOpac
 import { router } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { BottomSheet } from './BottomSheet';
+import { ChatMarkdown } from './ChatMarkdown';
 import { useFileChat, type ChatMessage } from '../hooks/useFileChat';
 
 interface FileChatSheetProps {
@@ -21,7 +22,7 @@ const QUICK_ACTIONS = [
   { label: 'Find section about...', prompt: null }, // focuses the input instead of sending immediately
 ];
 
-function Bubble({ message, isDark }: { message: ChatMessage; isDark: boolean }) {
+const Bubble = React.memo(function Bubble({ message, isDark }: { message: ChatMessage; isDark: boolean }) {
   if (message.role === 'error') {
     return (
       <View style={[styles.bubble, styles.errorBubble]}>
@@ -30,19 +31,19 @@ function Bubble({ message, isDark }: { message: ChatMessage; isDark: boolean }) 
     );
   }
   const isUser = message.role === 'user';
+  if (isUser) {
+    return (
+      <View style={[styles.bubble, { alignSelf: 'flex-end', backgroundColor: '#007AFF' }]}>
+        <Text style={{ color: '#fff', fontSize: 14 }}>{message.content}</Text>
+      </View>
+    );
+  }
   return (
-    <View
-      style={[
-        styles.bubble,
-        isUser
-          ? { alignSelf: 'flex-end', backgroundColor: '#007AFF' }
-          : { alignSelf: 'flex-start', backgroundColor: isDark ? '#2a2a2a' : '#eee' },
-      ]}
-    >
-      <Text style={{ color: isUser ? '#fff' : (isDark ? '#fff' : '#000'), fontSize: 14 }}>{message.content}</Text>
+    <View style={[styles.bubble, { alignSelf: 'flex-start', backgroundColor: isDark ? '#2a2a2a' : '#eee' }]}>
+      <ChatMarkdown content={message.content} color={isDark ? '#fff' : '#000'} isDark={isDark} />
     </View>
   );
-}
+});
 
 export function FileChatSheet({ visible, onClose, isDark, fileName, content, apiKey, model }: FileChatSheetProps) {
   const { messages, isLoading, truncated, send } = useFileChat(fileName, content, apiKey, model);
