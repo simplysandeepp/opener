@@ -211,13 +211,15 @@ export default function SettingsScreen() {
 
         {apiKey && !isEditingKey ? (
           <View style={[styles.savedKeyRow, { borderColor: isDark ? '#444' : '#ccc' }]}>
-            <Text style={{ color: isDark ? '#aaa' : '#666', fontSize: 14 }}>•••••••••••••••••• (saved on this device)</Text>
-            <View style={styles.buttonRow}>
-              <TouchableOpacity onPress={() => setIsEditingKey(true)}>
+            <Text style={{ color: isDark ? '#aaa' : '#666', fontSize: 14, flex: 1, marginRight: 10 }} numberOfLines={1}>
+              •••••••••••••••••• (saved)
+            </Text>
+            <View style={styles.savedKeyActions}>
+              <TouchableOpacity onPress={() => setIsEditingKey(true)} hitSlop={8}>
                 <Text style={styles.changeText}>Change</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={handleRemoveKey}>
-                <Text style={[styles.removeKeyText, { marginTop: 0 }]}>Remove</Text>
+              <TouchableOpacity onPress={handleRemoveKey} hitSlop={8}>
+                <Text style={styles.removeInlineText}>Remove</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -362,4 +364,6 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
     marginTop: 8,
   },
+  savedKeyActions: { flexDirection: 'row', alignItems: 'center', gap: 14 },
+  removeInlineText: { color: '#ff3b30', fontSize: 13, fontWeight: '600' },
 });
