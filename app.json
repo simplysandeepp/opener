@@ -25,20 +25,36 @@
       "intentFilters": [
         {
           "action": "VIEW",
-          "category": ["DEFAULT"],
+          "category": [
+            "DEFAULT"
+          ],
           "data": [
-            { "mimeType": "text/plain" },
-            { "mimeType": "text/markdown" },
-            { "mimeType": "text/html" }
+            {
+              "mimeType": "text/plain"
+            },
+            {
+              "mimeType": "text/markdown"
+            },
+            {
+              "mimeType": "text/html"
+            }
           ]
         },
         {
           "action": "SEND",
-          "category": ["DEFAULT"],
+          "category": [
+            "DEFAULT"
+          ],
           "data": [
-            { "mimeType": "text/plain" },
-            { "mimeType": "text/markdown" },
-            { "mimeType": "text/html" }
+            {
+              "mimeType": "text/plain"
+            },
+            {
+              "mimeType": "text/markdown"
+            },
+            {
+              "mimeType": "text/html"
+            }
           ]
         }
       ]
@@ -54,7 +70,8 @@
         {
           "faceIDPermission": "Allow Opener to use Face ID to unlock the app."
         }
-      ]
+      ],
+      "expo-sqlite"
     ],
     "extra": {
       "router": {},
