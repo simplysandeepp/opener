@@ -1,5 +1,6 @@
 import { Stack } from 'expo-router';
 import { ThemeProvider, useTheme } from '../contexts/ThemeContext';
+import { AppLockProvider } from '../contexts/AppLockContext';
 
 function RootNavigator() {
   const { isDark } = useTheme();
@@ -28,8 +29,10 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <ThemeProvider>
-      <RootNavigator />
-    </ThemeProvider>
+    <AppLockProvider>
+      <ThemeProvider>
+        <RootNavigator />
+      </ThemeProvider>
+    </AppLockProvider>
   );
 }
