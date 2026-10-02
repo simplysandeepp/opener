@@ -1,9 +1,34 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, FlatList, useColorScheme, BackHandler } from 'react-native';
 import { StorageAccessFramework } from 'expo-file-system/legacy';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, Stack } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
+
+function getFileInfo(filename: string, isDark: boolean) {
+  if (!filename.includes('.')) return { isFile: false, icon: 'folder', color: '#fbc02d' };
+
+  const ext = filename.split('.').pop()?.toLowerCase() || '';
+
+  switch (ext) {
+    case 'html':
+    case 'htm':
+      return { isFile: true, icon: 'language', color: '#e44d26' }; // HTML5 Orange
+    case 'md':
+    case 'markdown':
+      return { isFile: true, icon: 'article', color: isDark ? '#fff' : '#333' };
+    case 'txt':
+      return { isFile: true, icon: 'text-snippet', color: '#9e9e9e' };
+    case 'csv':
+      return { isFile: true, icon: 'table-chart', color: '#4caf50' };
+    default:
+      // If extension is 1-4 chars, assume file, else folder (e.g., v1.0.0 might be a folder)
+      if (ext.length > 0 && ext.length <= 4 && !/\d/.test(ext)) {
+        return { isFile: true, icon: 'insert-drive-file', color: isDark ? '#aaa' : '#666' };
+      }
+      return { isFile: false, icon: 'folder', color: '#fbc02d' };
+  }
+}
 
 export default function HomeScreen() {
   const [rootUri, setRootUri] = useState<string | null>(null);
@@ -12,30 +37,46 @@ export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const isDark = colorScheme === 'dark';
 
-  useEffect(() => {
-    loadSavedDirectory();
+  const getDisplayName = useCallback((uri: string) => {
+    try {
+      const decoded = decodeURIComponent(uri);
+      const parts = decoded.split('/');
+      let lastPart = parts.pop() || decoded;
+      if (lastPart.includes(':')) {
+        lastPart = lastPart.split(':').pop() || lastPart;
+      }
+      return lastPart || 'Selected Folder';
+    } catch {
+      return 'Selected Folder';
+    }
   }, []);
 
-  useEffect(() => {
-    const onBackPress = () => {
-      if (history.length > 0) {
-        goBack();
-        return true; // Prevent default back (which closes the app)
-      }
-      return false; // Allow default back (close app) if at root folder
-    };
+  const readDirectory = useCallback(async (uri: string) => {
+    try {
+      const filesInDir = await StorageAccessFramework.readDirectoryAsync(uri);
 
-    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
-    return () => backHandler.remove();
-  }, [history, rootUri]); // Re-bind when history changes
+      filesInDir.sort((a, b) => {
+        const nameA = getDisplayName(a);
+        const nameB = getDisplayName(b);
+        const infoA = getFileInfo(nameA, isDark);
+        const infoB = getFileInfo(nameB, isDark);
 
-  const loadSavedDirectory = async () => {
+        if (infoA.isFile === infoB.isFile) return nameA.localeCompare(nameB);
+        return infoA.isFile ? 1 : -1;
+      });
+      setFiles(filesInDir);
+    } catch (e) {
+      console.warn('Failed to read directory', e);
+    }
+  }, [isDark, getDisplayName]);
+
+  const loadSavedDirectory = useCallback(async () => {
     try {
       const savedRoot = await AsyncStorage.getItem('opener_root_uri');
       const savedFolder = await AsyncStorage.getItem('opener_current_folder');
       const savedHistory = await AsyncStorage.getItem('opener_history');
       const lastScreen = await AsyncStorage.getItem('last_opened_screen');
-      
+
       if (savedFolder && savedRoot) {
         if (savedHistory) setHistory(JSON.parse(savedHistory));
         setRootUri(savedFolder);
@@ -55,11 +96,40 @@ export default function HomeScreen() {
           });
         }
       }
-
     } catch (e) {
       console.warn('Failed to load saved directory', e);
     }
-  };
+  }, [readDirectory, getDisplayName]);
+
+  useEffect(() => {
+    loadSavedDirectory();
+  }, [loadSavedDirectory]);
+
+  const goBack = useCallback(async () => {
+    if (history.length > 0) {
+      const newHistory = [...history];
+      const previousUri = newHistory.pop()!;
+      setHistory(newHistory);
+      setRootUri(previousUri);
+      await AsyncStorage.setItem('opener_history', JSON.stringify(newHistory));
+      await AsyncStorage.setItem('opener_current_folder', previousUri);
+      await AsyncStorage.setItem('last_opened_screen', 'index');
+      readDirectory(previousUri);
+    }
+  }, [history, readDirectory]);
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (history.length > 0) {
+        goBack();
+        return true; // Prevent default back (which closes the app)
+      }
+      return false; // Allow default back (close app) if at root folder
+    };
+
+    const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+    return () => backHandler.remove();
+  }, [history, goBack]);
 
   const selectDirectory = async () => {
     try {
@@ -76,91 +146,20 @@ export default function HomeScreen() {
     }
   };
 
-  const getFileInfo = (filename: string, isDark: boolean) => {
-    if (!filename.includes('.')) return { isFile: false, icon: 'folder', color: '#fbc02d' };
-    
-    const ext = filename.split('.').pop()?.toLowerCase() || '';
-    
-    switch(ext) {
-      case 'html': 
-      case 'htm': 
-        return { isFile: true, icon: 'language', color: '#e44d26' }; // HTML5 Orange
-      case 'md': 
-      case 'markdown': 
-        return { isFile: true, icon: 'article', color: isDark ? '#fff' : '#333' }; 
-      case 'txt': 
-        return { isFile: true, icon: 'text-snippet', color: '#9e9e9e' };
-      case 'csv': 
-        return { isFile: true, icon: 'table-chart', color: '#4caf50' };
-      default:
-        // If extension is 1-4 chars, assume file, else folder (e.g., v1.0.0 might be a folder)
-        if (ext.length > 0 && ext.length <= 4 && !/\d/.test(ext)) {
-           return { isFile: true, icon: 'insert-drive-file', color: isDark ? '#aaa' : '#666' };
-        }
-        return { isFile: false, icon: 'folder', color: '#fbc02d' };
-    }
-  };
-
-  const readDirectory = async (uri: string) => {
-    try {
-      const filesInDir = await StorageAccessFramework.readDirectoryAsync(uri);
-      
-      filesInDir.sort((a, b) => {
-        const nameA = getDisplayName(a);
-        const nameB = getDisplayName(b);
-        const infoA = getFileInfo(nameA, isDark);
-        const infoB = getFileInfo(nameB, isDark);
-        
-        if (infoA.isFile === infoB.isFile) return nameA.localeCompare(nameB);
-        return infoA.isFile ? 1 : -1;
-      });
-      setFiles(filesInDir);
-    } catch (e) {
-      console.warn('Failed to read directory', e);
-    }
-  };
-
-  const goBack = async () => {
-    if (history.length > 0) {
-      const newHistory = [...history];
-      const previousUri = newHistory.pop()!;
-      setHistory(newHistory);
-      setRootUri(previousUri);
-      await AsyncStorage.setItem('opener_history', JSON.stringify(newHistory));
-      await AsyncStorage.setItem('opener_current_folder', previousUri);
-      await AsyncStorage.setItem('last_opened_screen', 'index');
-      readDirectory(previousUri);
-    }
-  };
-
-  const getDisplayName = (uri: string) => {
-    try {
-      const decoded = decodeURIComponent(uri);
-      const parts = decoded.split('/');
-      let lastPart = parts.pop() || decoded;
-      if (lastPart.includes(':')) {
-        lastPart = lastPart.split(':').pop() || lastPart;
-      }
-      return lastPart || 'Selected Folder';
-    } catch {
-      return 'Selected Folder';
-    }
-  };
-
   const handleItemPress = async (itemUri: string, filename: string, isFileGuess: boolean) => {
     try {
       await StorageAccessFramework.readDirectoryAsync(itemUri);
-      
+
       const newHistory = [...history, rootUri!];
       setHistory(newHistory);
       setRootUri(itemUri);
-      
+
       await AsyncStorage.setItem('opener_history', JSON.stringify(newHistory));
       await AsyncStorage.setItem('opener_current_folder', itemUri);
       await AsyncStorage.setItem('last_opened_screen', 'index');
-      
+
       readDirectory(itemUri);
-    } catch (e) {
+    } catch {
       await AsyncStorage.setItem('current_file_uri', itemUri);
       await AsyncStorage.setItem('last_opened_screen', 'viewer');
       router.push({
@@ -172,7 +171,15 @@ export default function HomeScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#121212' : '#f5f5f5' }]}>
-      <Stack.Screen options={{ title: 'Opener' }} />
+      <Stack.Screen
+        options={{
+          headerTitle: () => (
+            <Text style={{ fontSize: 20, fontWeight: 'bold', color: isDark ? '#fff' : '#000' }}>
+              <Text style={{ color: '#3498db' }}>O</Text>pener
+            </Text>
+          )
+        }}
+      />
       {!rootUri ? (
         <View style={styles.emptyState}>
           <Text style={[styles.title, { color: isDark ? '#fff' : '#000' }]}>
@@ -206,9 +213,9 @@ export default function HomeScreen() {
             renderItem={({ item }) => {
               const filename = getDisplayName(item);
               const info = getFileInfo(filename, isDark);
-              
+
               return (
-                <TouchableOpacity 
+                <TouchableOpacity
                   style={[styles.fileItem, { borderBottomColor: isDark ? '#333' : '#e0e0e0' }]}
                   onPress={() => handleItemPress(item, filename, info.isFile)}
                 >
