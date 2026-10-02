@@ -21,7 +21,27 @@
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.sandeepprajapati1202.opener"
+      "package": "com.sandeepprajapati1202.opener",
+      "intentFilters": [
+        {
+          "action": "VIEW",
+          "category": ["DEFAULT"],
+          "data": [
+            { "mimeType": "text/plain" },
+            { "mimeType": "text/markdown" },
+            { "mimeType": "text/html" }
+          ]
+        },
+        {
+          "action": "SEND",
+          "category": ["DEFAULT"],
+          "data": [
+            { "mimeType": "text/plain" },
+            { "mimeType": "text/markdown" },
+            { "mimeType": "text/html" }
+          ]
+        }
+      ]
     },
     "web": {
       "favicon": "./assets/favicon.png"
