@@ -5,7 +5,10 @@ import { router, Stack } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import { StorageProvider } from '../lib/storage/StorageProvider';
 import { useDirectory } from '../hooks/useDirectory';
-import { getDisplayName, getFileIcon } from '../lib/fileKind';
+import { useRecents, type RecentFile } from '../hooks/useRecents';
+import { useFavorites, type FavoriteEntry } from '../hooks/useFavorites';
+import { getDisplayName, getFileIcon, isLikelyFile } from '../lib/fileKind';
+import { QuickAccessSection } from '../components/QuickAccessSection';
 
 export default function HomeScreen() {
   const [rootUri, setRootUri] = useState<string | null>(null);
@@ -14,6 +17,23 @@ export default function HomeScreen() {
   const isDark = colorScheme === 'dark';
 
   const { files } = useDirectory(rootUri);
+  const { recents, addRecent } = useRecents();
+  const { favorites, isFavorite, toggleFavorite } = useFavorites();
+
+  const openFile = useCallback(async (uri: string, name: string) => {
+    addRecent(uri, name);
+    await AsyncStorage.setItem('current_file_uri', uri);
+    await AsyncStorage.setItem('last_opened_screen', 'viewer');
+    router.push({ pathname: '/viewer', params: { name } });
+  }, [addRecent]);
+
+  const openFolder = useCallback(async (uri: string) => {
+    setHistory([]);
+    setRootUri(uri);
+    await AsyncStorage.setItem('opener_current_folder', uri);
+    await AsyncStorage.setItem('opener_history', JSON.stringify([]));
+    await AsyncStorage.setItem('last_opened_screen', 'index');
+  }, []);
 
   const loadSavedDirectory = useCallback(async () => {
     try {
@@ -99,13 +119,17 @@ export default function HomeScreen() {
       await AsyncStorage.setItem('opener_current_folder', itemUri);
       await AsyncStorage.setItem('last_opened_screen', 'index');
     } catch {
-      await AsyncStorage.setItem('current_file_uri', itemUri);
-      await AsyncStorage.setItem('last_opened_screen', 'viewer');
-      router.push({
-        pathname: '/viewer',
-        params: { name: filename }
-      });
+      openFile(itemUri, filename);
     }
+  };
+
+  const handleOpenFavorite = (entry: FavoriteEntry) => {
+    if (entry.isFolder) openFolder(entry.uri);
+    else openFile(entry.uri, entry.name);
+  };
+
+  const handleOpenRecent = (entry: RecentFile) => {
+    openFile(entry.uri, entry.name);
   };
 
   return (
@@ -118,6 +142,13 @@ export default function HomeScreen() {
             </Text>
           )
         }}
+      />
+      <QuickAccessSection
+        favorites={favorites}
+        recents={recents}
+        isDark={isDark}
+        onOpenFavorite={handleOpenFavorite}
+        onOpenRecent={handleOpenRecent}
       />
       {!rootUri ? (
         <View style={styles.emptyState}>
@@ -152,6 +183,7 @@ export default function HomeScreen() {
             renderItem={({ item }) => {
               const filename = getDisplayName(item);
               const { icon, color } = getFileIcon(filename, isDark);
+              const pinned = isFavorite(item);
 
               return (
                 <TouchableOpacity
@@ -160,6 +192,12 @@ export default function HomeScreen() {
                 >
                   <MaterialIcons name={icon as any} size={24} color={color} style={styles.icon} />
                   <Text style={[styles.fileText, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>{filename}</Text>
+                  <TouchableOpacity
+                    hitSlop={10}
+                    onPress={() => toggleFavorite({ uri: item, name: filename, isFolder: !isLikelyFile(filename) })}
+                  >
+                    <MaterialIcons name={pinned ? 'star' : 'star-border'} size={20} color={pinned ? '#f9a825' : (isDark ? '#666' : '#aaa')} />
+                  </TouchableOpacity>
                 </TouchableOpacity>
               );
             }}
@@ -184,5 +222,5 @@ const styles = StyleSheet.create({
   changeText: { color: '#007AFF', fontSize: 14, fontWeight: '600' },
   fileItem: { flexDirection: 'row', alignItems: 'center', padding: 15, borderBottomWidth: 1 },
   icon: { marginRight: 15 },
-  fileText: { flex: 1, fontSize: 16 },
+  fileText: { flex: 1, fontSize: 16, marginRight: 10 },
 });
