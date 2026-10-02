@@ -3,6 +3,8 @@ import type { ReactElement } from 'react';
 export interface FileHandlerProps {
   content: string;
   isDark: boolean;
+  /** Reports scroll direction while reading, so the viewer can hide/show its header (handlers with no scroll view can ignore this). */
+  onScrollDirectionChange?: (direction: 'up' | 'down') => void;
 }
 
 export interface FileHandler {

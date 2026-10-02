@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import type { FileHandler } from './types';
+import { useScrollDirection } from '../../hooks/useScrollDirection';
+import type { FileHandler, FileHandlerProps } from './types';
 
 type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
 
@@ -65,13 +66,15 @@ function JsonNode({ label, value, isDark, depth }: { label: string | null; value
   );
 }
 
-function JsonTreeView({ content, isDark }: { content: string; isDark: boolean }) {
+function JsonTreeView({ content, isDark, onScrollDirectionChange }: FileHandlerProps) {
+  const handleScroll = useScrollDirection((direction) => onScrollDirectionChange?.(direction));
+
   let parsed: JsonValue;
   try {
     parsed = JSON.parse(content);
   } catch (e: any) {
     return (
-      <ScrollView style={styles.container} contentContainerStyle={{ padding: 15 }}>
+      <ScrollView style={styles.container} contentContainerStyle={{ padding: 15 }} onScroll={handleScroll} scrollEventThrottle={16}>
         <Text style={{ color: isDark ? '#ff6b6b' : '#d32f2f', marginBottom: 10 }}>
           Invalid JSON: {e.message}
         </Text>
@@ -81,7 +84,12 @@ function JsonTreeView({ content, isDark }: { content: string; isDark: boolean })
   }
 
   return (
-    <ScrollView style={[styles.container, { backgroundColor: isDark ? '#17171a' : '#fafafa' }]} contentContainerStyle={{ padding: 15 }}>
+    <ScrollView
+      style={[styles.container, { backgroundColor: isDark ? '#17171a' : '#fafafa' }]}
+      contentContainerStyle={{ padding: 15 }}
+      onScroll={handleScroll}
+      scrollEventThrottle={16}
+    >
       <JsonNode label={null} value={parsed} isDark={isDark} depth={0} />
     </ScrollView>
   );
@@ -90,7 +98,7 @@ function JsonTreeView({ content, isDark }: { content: string; isDark: boolean })
 export const jsonHandler: FileHandler = {
   id: 'json',
   canOpen: (filename) => filename.split('.').pop()?.toLowerCase() === 'json',
-  render: ({ content, isDark }) => <JsonTreeView content={content} isDark={isDark} />,
+  render: (props) => <JsonTreeView {...props} />,
 };
 
 const styles = StyleSheet.create({
