@@ -7,7 +7,7 @@ interface TabBarProps {
   isDark: boolean;
 }
 
-export function TabBar({ isDark }: TabBarProps) {
+export const TabBar = React.memo(function TabBar({ isDark }: TabBarProps) {
   const { tabs, activeUri, dirty, setActiveTab, closeTab } = useTabs();
 
   if (tabs.length <= 1) return null;
@@ -53,7 +53,7 @@ export function TabBar({ isDark }: TabBarProps) {
       }}
     />
   );
-}
+});
 
 const styles = StyleSheet.create({
   bar: { flexGrow: 0, borderBottomWidth: 1 },

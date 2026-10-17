@@ -12,7 +12,7 @@ interface PromptModalProps {
   onSubmit: (value: string) => void;
 }
 
-export function PromptModal({
+export const PromptModal = React.memo(function PromptModal({
   visible,
   title,
   initialValue = '',
@@ -64,7 +64,7 @@ export function PromptModal({
       </View>
     </Modal>
   );
-}
+});
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 30 },

@@ -16,7 +16,7 @@ interface InlineActionBarProps {
   onAction: (kind: InlineActionKind) => void;
 }
 
-export function InlineActionBar({ isDark, disabled, onAction }: InlineActionBarProps) {
+export const InlineActionBar = React.memo(function InlineActionBar({ isDark, disabled, onAction }: InlineActionBarProps) {
   return (
     <View style={[styles.container, { backgroundColor: isDark ? '#17171a' : '#eaeaea', borderTopColor: isDark ? '#333' : '#ddd' }]}>
       {ACTIONS.map((action) => (
@@ -31,7 +31,7 @@ export function InlineActionBar({ isDark, disabled, onAction }: InlineActionBarP
       ))}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, padding: 10, borderTopWidth: 1 },
