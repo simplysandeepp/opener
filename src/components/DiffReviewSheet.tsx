@@ -15,7 +15,7 @@ interface DiffReviewSheetProps {
   onReject: () => void;
 }
 
-export function DiffReviewSheet({
+export const DiffReviewSheet = React.memo(function DiffReviewSheet({
   visible,
   isDark,
   title,
@@ -89,7 +89,7 @@ export function DiffReviewSheet({
       )}
     </BottomSheet>
   );
-}
+});
 
 const styles = StyleSheet.create({
   header: { paddingHorizontal: 16, paddingBottom: 10 },

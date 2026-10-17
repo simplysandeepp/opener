@@ -45,7 +45,7 @@ const Bubble = React.memo(function Bubble({ message, isDark }: { message: ChatMe
   );
 });
 
-export function FileChatSheet({ visible, onClose, isDark, fileName, content, apiKey, model }: FileChatSheetProps) {
+export const FileChatSheet = React.memo(function FileChatSheet({ visible, onClose, isDark, fileName, content, apiKey, model }: FileChatSheetProps) {
   const { messages, isLoading, truncated, rateLimit, send } = useFileChat(fileName, content, apiKey, model);
   const [input, setInput] = useState('');
   const inputRef = useRef<TextInput>(null);
@@ -163,7 +163,7 @@ export function FileChatSheet({ visible, onClose, isDark, fileName, content, api
       )}
     </BottomSheet>
   );
-}
+});
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, paddingBottom: 10 },

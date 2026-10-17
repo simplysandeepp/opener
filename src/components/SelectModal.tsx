@@ -18,7 +18,7 @@ interface SelectModalProps {
   onCancel: () => void;
 }
 
-export function SelectModal({ visible, title, options, selectedId, isDark, onSelect, onCancel }: SelectModalProps) {
+export const SelectModal = React.memo(function SelectModal({ visible, title, options, selectedId, isDark, onSelect, onCancel }: SelectModalProps) {
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
@@ -49,7 +49,7 @@ export function SelectModal({ visible, title, options, selectedId, isDark, onSel
       </View>
     </Modal>
   );
-}
+});
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center', padding: 30 },

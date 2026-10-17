@@ -20,6 +20,38 @@ type Prompt =
   | { type: 'newFolder' }
   | { type: 'rename'; uri: string; name: string };
 
+interface FileRowProps {
+  uri: string;
+  filename: string;
+  isDark: boolean;
+  pinned: boolean;
+  onPress: (uri: string, filename: string) => void;
+  onLongPress: (uri: string, filename: string) => void;
+  onToggleFavorite: (uri: string, filename: string) => void;
+}
+
+/**
+ * Memoized so toggling one row's favorite (or any unrelated HomeScreen state change) doesn't
+ * re-render every visible row - FlatList's own renderItem being an inline closure meant every
+ * row re-rendered on every state change before this.
+ */
+const FileRow = React.memo(function FileRow({ uri, filename, isDark, pinned, onPress, onLongPress, onToggleFavorite }: FileRowProps) {
+  const { icon, color } = getFileIcon(filename, isDark);
+  return (
+    <TouchableOpacity
+      style={[styles.fileItem, { borderBottomColor: isDark ? '#333' : '#e0e0e0' }]}
+      onPress={() => onPress(uri, filename)}
+      onLongPress={() => onLongPress(uri, filename)}
+    >
+      <MaterialIcons name={icon as any} size={24} color={color} style={styles.icon} />
+      <Text style={[styles.fileText, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>{filename}</Text>
+      <TouchableOpacity hitSlop={10} onPress={() => onToggleFavorite(uri, filename)}>
+        <MaterialIcons name={pinned ? 'star' : 'star-border'} size={20} color={pinned ? '#f9a825' : (isDark ? '#666' : '#aaa')} />
+      </TouchableOpacity>
+    </TouchableOpacity>
+  );
+});
+
 export default function HomeScreen() {
   const [rootUri, setRootUri] = useState<string | null>(null);
   const [history, setHistory] = useState<string[]>([]);
@@ -126,7 +158,7 @@ export default function HomeScreen() {
     return () => backHandler.remove();
   }, [history, goBack, showSearch, closeSearch]);
 
-  const selectDirectory = async () => {
+  const selectDirectory = useCallback(async () => {
     try {
       const uri = await StorageProvider.requestDirectoryPermission();
       if (uri) {
@@ -138,9 +170,9 @@ export default function HomeScreen() {
       console.warn('Failed to select directory', e);
       Alert.alert('Could not open folder picker', 'Something went wrong requesting folder access. Please try again.');
     }
-  };
+  }, []);
 
-  const handleItemPress = async (itemUri: string, filename: string) => {
+  const handleItemPress = useCallback(async (itemUri: string, filename: string) => {
     // listDirectoryOrNull doubles as the folder-vs-file check; reusing its result via
     // primeFiles means entering a folder doesn't list it twice (once to check, once to show).
     const children = await StorageProvider.listDirectoryOrNull(itemUri);
@@ -161,22 +193,26 @@ export default function HomeScreen() {
       ['opener_current_folder', itemUri],
       ['last_opened_screen', 'index'],
     ]);
-  };
+  }, [history, rootUri, closeSearch, openFile, primeFiles]);
 
-  const handleOpenFavorite = (entry: FavoriteEntry) => {
+  const handleOpenFavorite = useCallback((entry: FavoriteEntry) => {
     if (entry.isFolder) openFolder(entry.uri);
     else openFile(entry.uri, entry.name);
-  };
+  }, [openFolder, openFile]);
 
-  const handleOpenRecent = (entry: RecentFile) => {
+  const handleOpenRecent = useCallback((entry: RecentFile) => {
     openFile(entry.uri, entry.name);
-  };
+  }, [openFile]);
 
   const forgetFavorite = useCallback((uri: string) => {
     if (isFavorite(uri)) toggleFavorite({ uri, name: '', isFolder: false });
   }, [isFavorite, toggleFavorite]);
 
-  const handleDelete = (itemUri: string, filename: string) => {
+  const handleToggleFavorite = useCallback((uri: string, filename: string) => {
+    toggleFavorite({ uri, name: filename, isFolder: !isLikelyFile(filename) });
+  }, [toggleFavorite]);
+
+  const handleDelete = useCallback((itemUri: string, filename: string) => {
     Alert.alert('Delete', `Delete "${filename}"? This cannot be undone.`, [
       { text: 'Cancel', style: 'cancel' },
       {
@@ -193,18 +229,18 @@ export default function HomeScreen() {
         },
       },
     ]);
-  };
+  }, [forgetFavorite, refreshDirectory]);
 
-  const handleDuplicate = async (itemUri: string, filename: string) => {
+  const handleDuplicate = useCallback(async (itemUri: string, filename: string) => {
     try {
       await duplicateFile(itemUri, rootUri!);
       refreshDirectory();
     } catch (e: any) {
       Alert.alert('Error', `Could not duplicate "${filename}". ${e.message || ''}`);
     }
-  };
+  }, [rootUri, refreshDirectory]);
 
-  const handleLongPress = (itemUri: string, filename: string) => {
+  const handleLongPress = useCallback((itemUri: string, filename: string) => {
     const isFile = isLikelyFile(filename);
     const options: { text: string; style?: 'default' | 'cancel' | 'destructive'; onPress?: () => void }[] = [];
 
@@ -216,17 +252,17 @@ export default function HomeScreen() {
     options.push({ text: 'Cancel', style: 'cancel' });
 
     Alert.alert(filename, undefined, options);
-  };
+  }, [handleDuplicate, handleDelete]);
 
-  const handleAddPress = () => {
+  const handleAddPress = useCallback(() => {
     Alert.alert('New', undefined, [
       { text: 'New File', onPress: () => setPrompt({ type: 'newFile' }) },
       { text: 'New Folder', onPress: () => setPrompt({ type: 'newFolder' }) },
       { text: 'Cancel', style: 'cancel' },
     ]);
-  };
+  }, []);
 
-  const handlePromptSubmit = async (value: string) => {
+  const handlePromptSubmit = useCallback(async (value: string) => {
     if (!prompt || !rootUri || !value) {
       setPrompt(null);
       return;
@@ -247,7 +283,26 @@ export default function HomeScreen() {
     } catch (e: any) {
       Alert.alert('Error', e.message || 'Something went wrong.');
     }
-  };
+  }, [prompt, rootUri, forgetFavorite, refreshDirectory]);
+
+  const closePrompt = useCallback(() => setPrompt(null), []);
+  const openSettings = useCallback(() => router.push('/settings'), []);
+  const openSearch = useCallback(() => setShowSearch(true), []);
+
+  const renderFileRow = useCallback(({ item }: { item: string }) => {
+    const filename = getDisplayName(item);
+    return (
+      <FileRow
+        uri={item}
+        filename={filename}
+        isDark={isDark}
+        pinned={isFavorite(item)}
+        onPress={handleItemPress}
+        onLongPress={handleLongPress}
+        onToggleFavorite={handleToggleFavorite}
+      />
+    );
+  }, [isDark, isFavorite, handleItemPress, handleLongPress, handleToggleFavorite]);
 
   const isSearchingQuery = query.length > 0;
   const displayedItems = isSearchingQuery ? (recursiveResults ?? localResults).map((r) => r.uri) : files;
@@ -262,7 +317,7 @@ export default function HomeScreen() {
             </Text>
           ),
           headerRight: () => (
-            <TouchableOpacity onPress={() => router.push('/settings')} hitSlop={10} style={{ marginRight: 15 }}>
+            <TouchableOpacity onPress={openSettings} hitSlop={10} style={{ marginRight: 15 }}>
               <MaterialIcons name="settings" size={22} color={isDark ? '#ccc' : '#444'} />
             </TouchableOpacity>
           ),
@@ -321,7 +376,7 @@ export default function HomeScreen() {
                 <TouchableOpacity onPress={handleAddPress} hitSlop={10} style={styles.searchBtn}>
                   <MaterialIcons name="add" size={22} color={isDark ? '#ccc' : '#444'} />
                 </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowSearch(true)} hitSlop={10} style={styles.searchBtn}>
+                <TouchableOpacity onPress={openSearch} hitSlop={10} style={styles.searchBtn}>
                   <MaterialIcons name="search" size={20} color={isDark ? '#ccc' : '#444'} />
                 </TouchableOpacity>
                 <TouchableOpacity onPress={selectDirectory}>
@@ -362,28 +417,11 @@ export default function HomeScreen() {
           <FlatList
             data={displayedItems}
             keyExtractor={(item) => item}
-            renderItem={({ item }) => {
-              const filename = getDisplayName(item);
-              const { icon, color } = getFileIcon(filename, isDark);
-              const pinned = isFavorite(item);
-
-              return (
-                <TouchableOpacity
-                  style={[styles.fileItem, { borderBottomColor: isDark ? '#333' : '#e0e0e0' }]}
-                  onPress={() => handleItemPress(item, filename)}
-                  onLongPress={() => handleLongPress(item, filename)}
-                >
-                  <MaterialIcons name={icon as any} size={24} color={color} style={styles.icon} />
-                  <Text style={[styles.fileText, { color: isDark ? '#fff' : '#000' }]} numberOfLines={1}>{filename}</Text>
-                  <TouchableOpacity
-                    hitSlop={10}
-                    onPress={() => toggleFavorite({ uri: item, name: filename, isFolder: !isLikelyFile(filename) })}
-                  >
-                    <MaterialIcons name={pinned ? 'star' : 'star-border'} size={20} color={pinned ? '#f9a825' : (isDark ? '#666' : '#aaa')} />
-                  </TouchableOpacity>
-                </TouchableOpacity>
-              );
-            }}
+            renderItem={renderFileRow}
+            removeClippedSubviews
+            maxToRenderPerBatch={16}
+            windowSize={8}
+            initialNumToRender={16}
           />
         </View>
       )}
@@ -398,7 +436,7 @@ export default function HomeScreen() {
         initialValue={prompt?.type === 'rename' ? prompt.name : ''}
         placeholder={prompt?.type === 'newFolder' ? 'Folder name' : 'file-name.ext'}
         confirmLabel={prompt?.type === 'rename' ? 'Rename' : 'Create'}
-        onCancel={() => setPrompt(null)}
+        onCancel={closePrompt}
         onSubmit={handlePromptSubmit}
       />
     </View>

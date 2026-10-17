@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, ActivityIndicator, Alert, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useFileContent } from '../hooks/useFileContent';
@@ -43,6 +43,10 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
   const [chatVisible, setChatVisible] = useState(false);
   const [selection, setSelection] = useState({ start: 0, end: 0 });
   const [pendingSelection, setPendingSelection] = useState<{ start: number; end: number; text: string } | null>(null);
+  const pendingSelectionRef = useRef(pendingSelection);
+  useEffect(() => {
+    pendingSelectionRef.current = pendingSelection;
+  });
   const [languagePromptVisible, setLanguagePromptVisible] = useState(false);
   const [diffVisible, setDiffVisible] = useState(false);
   const [activeActionKind, setActiveActionKind] = useState<InlineActionKind>('rewrite');
@@ -124,13 +128,13 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
     });
   }, [isActive, name, isEditing, isSaving, headerHidden, onHeaderChange, saveFileContent, cancelEditing]);
 
-  const runInlineAction = (instruction: string, selectedText: string, start: number, end: number) => {
+  const runInlineAction = useCallback((instruction: string, selectedText: string, start: number, end: number) => {
     setPendingSelection({ start, end, text: selectedText });
     setDiffVisible(true);
     inlineAction.run({ instruction, text: selectedText, apiKey: apiKey!, model });
-  };
+  }, [inlineAction, apiKey, model]);
 
-  const handleInlineAction = (kind: InlineActionKind) => {
+  const handleInlineAction = useCallback((kind: InlineActionKind) => {
     const { start, end } = selection;
     const selectedText = editedContent.slice(start, end);
     if (!selectedText) return;
@@ -153,29 +157,35 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
       grammar: 'Fix grammar and spelling mistakes in the following text, making minimal other changes.',
     };
     runInlineAction(instructions[kind], selectedText, start, end);
-  };
+  }, [selection, editedContent, apiKey, runInlineAction]);
 
-  const handleLanguageSubmit = (language: string) => {
+  const handleLanguageSubmit = useCallback((language: string) => {
     setLanguagePromptVisible(false);
     if (!pendingSelection || !language) return;
     runInlineAction(`Translate the following text to ${language}.`, pendingSelection.text, pendingSelection.start, pendingSelection.end);
-  };
+  }, [pendingSelection, runInlineAction]);
 
-  const handleDiffAccept = (newText: string) => {
-    if (!pendingSelection) return;
-    const { start, end } = pendingSelection;
-    setEditedContent((prev) => prev.slice(0, start) + newText + prev.slice(end));
-    setSelection({ start: start + newText.length, end: start + newText.length });
+  const handleDiffAccept = useCallback((newText: string) => {
+    const pending = pendingSelectionRef.current;
+    if (pending) {
+      const { start, end } = pending;
+      setEditedContent((prev) => prev.slice(0, start) + newText + prev.slice(end));
+      setSelection({ start: start + newText.length, end: start + newText.length });
+    }
     setPendingSelection(null);
     setDiffVisible(false);
     inlineAction.reset();
-  };
+  }, [inlineAction]);
 
-  const handleDiffReject = () => {
+  const handleDiffReject = useCallback(() => {
     setPendingSelection(null);
     setDiffVisible(false);
     inlineAction.reset();
-  };
+  }, [inlineAction]);
+
+  const closeChatSheet = useCallback(() => setChatVisible(false), []);
+  const openChatSheet = useCallback(() => setChatVisible(true), []);
+  const closeLanguagePrompt = useCallback(() => setLanguagePromptVisible(false), []);
 
   const renderContent = () => {
     if (loading) {
@@ -225,13 +235,13 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
     <View style={[styles.container, { backgroundColor: isDark ? '#0a0a0c' : '#ffffff' }, !isActive && styles.hidden]}>
       {renderContent()}
       {settingsLoaded && aiEnabled && !loading && !error && content !== null && !isEditing && !headerHidden && (
-        <TouchableOpacity style={styles.fab} onPress={() => setChatVisible(true)}>
+        <TouchableOpacity style={styles.fab} onPress={openChatSheet}>
           <MaterialIcons name="chat" size={24} color="#fff" />
         </TouchableOpacity>
       )}
       <FileChatSheet
         visible={chatVisible}
-        onClose={() => setChatVisible(false)}
+        onClose={closeChatSheet}
         isDark={isDark}
         fileName={name}
         content={content ?? ''}
@@ -255,7 +265,7 @@ export function FileTabView({ uri, name, isActive, onHeaderChange }: FileTabView
         title="Translate to"
         placeholder="e.g. Spanish, Hindi, French"
         confirmLabel="Translate"
-        onCancel={() => setLanguagePromptVisible(false)}
+        onCancel={closeLanguagePrompt}
         onSubmit={handleLanguageSubmit}
       />
     </View>

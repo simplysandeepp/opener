@@ -34,7 +34,7 @@ interface QuickAccessSectionProps {
   onOpenRecent: (entry: RecentFile) => void;
 }
 
-export function QuickAccessSection({ favorites, recents, isDark, onOpenFavorite, onOpenRecent }: QuickAccessSectionProps) {
+export const QuickAccessSection = React.memo(function QuickAccessSection({ favorites, recents, isDark, onOpenFavorite, onOpenRecent }: QuickAccessSectionProps) {
   if (favorites.length === 0 && recents.length === 0) return null;
 
   return (
@@ -83,7 +83,7 @@ export function QuickAccessSection({ favorites, recents, isDark, onOpenFavorite,
       )}
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: { paddingTop: 10 },
